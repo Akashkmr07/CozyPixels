@@ -72,6 +72,7 @@ export default function FaqSection() {
               }}
             >
               <button
+                type="button"
                 onClick={() => toggleFaq(index)}
                 style={{ 
                   width: '100%', 

@@ -1,14 +1,21 @@
-import React, { useState, useEffect, useCallback, useRef, useDeferredValue } from 'react';
-import { motion, AnimatePresence, useMotionValueEvent, useScroll, useTransform } from 'motion/react';
-import { LuGithub, LuTwitter, LuGlobe, LuSparkles, LuWind, LuRotateCcw, LuChevronRight, LuCopy, LuCheck, LuImage, LuTrees, LuBuilding, LuMoon, LuSun, LuPalette, LuLayoutGrid } from 'react-icons/lu';
-import SocialCard from './components/forgeui/social-card';
-import FlipText from './components/forgeui/flip-text';
+import React, { useState, useEffect, useCallback, useRef, useDeferredValue, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { LuGithub, LuSparkles, LuWind, LuRotateCcw, LuChevronRight, LuCopy, LuCheck, LuImage, LuTrees, LuBuilding, LuMoon, LuSun, LuPalette, LuLayoutGrid } from 'react-icons/lu';
 import SanctuaryMode from './components/forgeui/sanctuary-mode';
 import FaqSection from './components/FaqSection';
+import Skiper34 from './components/Skiper34';
 import './index.css';
 
 const STATIC_URL = import.meta.env.PROD ? 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public' : '';
 const imageUrl = (path) => `${STATIC_URL}${path.startsWith('/') ? path : `/${path}`}`;
+
+const detectBrowser = () => {
+  const ua = window.navigator.userAgent;
+  if (ua.indexOf("Edg") > -1) return { name: 'Edge', url: 'edge://extensions' };
+  if (ua.indexOf("OPR") > -1 || ua.indexOf("Opera") > -1) return { name: 'Opera', url: 'opera://extensions' };
+  if (ua.indexOf("Brave") > -1 || (navigator.brave && navigator.brave.isBrave)) return { name: 'Brave', url: 'brave://extensions' };
+  return { name: 'Chrome', url: 'chrome://extensions' };
+};
 
 const promoSectionVariants = {
   hidden: { opacity: 0, y: 40 },
@@ -55,7 +62,6 @@ const modalCardVariants = {
 
 const ExtensionModal = ({ onClose, browser }) => {
   const [copied, setCopied] = useState(false);
-  const downloadUrl = 'https://github.com/user-attachments/files/28417336/Cozypixels_extension.zip';
 
   const copyUrl = () => {
     navigator.clipboard.writeText(browser.url);
@@ -77,7 +83,7 @@ const ExtensionModal = ({ onClose, browser }) => {
         onClick={(e) => e.stopPropagation()}
         variants={modalCardVariants}
       >
-        <button className="lightbox-close" onClick={onClose}>
+        <button type="button" className="lightbox-close" onClick={onClose}>
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
         </button>
 
@@ -95,7 +101,7 @@ const ExtensionModal = ({ onClose, browser }) => {
             <div className="step-text">
               <strong>Open Extensions Page</strong>
               <p>Copy this address and paste it into a new tab:</p>
-              <div className="copy-url-bar" onClick={copyUrl}>
+              <div className="copy-url-bar" role="button" tabIndex={0} onClick={copyUrl} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') copyUrl(); }}>
                 <code>{browser.url}</code>
                 {copied ? <LuCheck style={{ color: '#27c93f' }} /> : <LuCopy />}
               </div>
@@ -115,7 +121,7 @@ const ExtensionModal = ({ onClose, browser }) => {
         </div>
 
         <div className="modal-footer">
-          <button className="promo-btn primary" style={{ width: '100%' }} onClick={onClose}>
+          <button type="button" className="promo-btn primary" style={{ width: '100%' }} onClick={onClose}>
             I've loaded the Engine!
           </button>
         </div>
@@ -166,7 +172,7 @@ const HERO_WALLPAPERS = [
   'Nord/Abstract%20%26%20Artistic/ign_nordic_rose.png',
 ];
 
-const Hero = ({ totalCount = 0 }) => (
+const Hero = () => (
   <div className="hero-wrapper">
     <div className="hero-bg-gradient" />
     <div className="hero-orb hero-orb-1" />
@@ -267,21 +273,37 @@ const getCategoryIcon = (cat) => {
 const CategoryFilter = ({ categories, selected, onSelect, counts }) => (
   <nav className="container filters" aria-label="Wallpaper categories">
     <button
+      type="button"
       className={`filter-btn ${selected === 'All' ? 'active' : ''}`}
       onClick={() => onSelect('All')}
       aria-pressed={selected === 'All'}
     >
+      {selected === 'All' && (
+        <motion.div
+          layoutId="activeFilterBg"
+          className="active-filter-bg"
+          transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+        />
+      )}
       <span className="filter-icon">{getCategoryIcon('All')}</span>
       <span className="filter-text">All Wallpapers</span>
       <span className="filter-count">{counts.total}</span>
     </button>
     {categories.map((cat) => (
       <button
+        type="button"
         key={cat}
         className={`filter-btn ${selected === cat ? 'active' : ''}`}
         onClick={() => onSelect(cat)}
         aria-pressed={selected === cat}
       >
+        {selected === cat && (
+          <motion.div
+            layoutId="activeFilterBg"
+            className="active-filter-bg"
+            transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+          />
+        )}
         <span className="filter-icon">{getCategoryIcon(cat)}</span>
         <span className="filter-text">{cat}</span>
         <span className="filter-count">{counts[cat] || 0}</span>
@@ -414,7 +436,9 @@ const ExtensionPromo = ({ onOpenModal }) => {
 };
 
 
-const HorizontalShowcase = ({ wallpapers = [], onPreview }) => {
+const EMPTY_WALLPAPERS = [];
+
+const HorizontalShowcase = ({ wallpapers = EMPTY_WALLPAPERS, onPreview }) => {
   if (!wallpapers.length) return null;
 
 
@@ -525,7 +549,7 @@ const WallpaperCard = React.memo(({ wallpaper, onPreview, onShowToast }) => {
           decoding="async"
           onLoad={() => setIsLoaded(true)}
           onError={() => setHasError(true)}
-          style={{ opacity: isLoaded ? 1 : 0, transition: 'opacity 0.6s ease', willChange: 'opacity, transform' }}
+          style={{ opacity: isLoaded ? 1 : 0, transition: 'opacity 0.6s ease' }}
         />
       )}
 
@@ -557,16 +581,18 @@ const WallpaperCard = React.memo(({ wallpaper, onPreview, onShowToast }) => {
 
 
 const Lightbox = ({ wallpaper, onClose, onSanctuary, onShowToast }) => {
-  if (!wallpaper) return null;
-  const imageUrl = `${STATIC_URL}${wallpaper.path}`;
-  const downloadUrl = `${STATIC_URL}${wallpaper.downloadPath}`;
+  const imageUrl = wallpaper ? `${STATIC_URL}${wallpaper.path}` : '';
+  const downloadUrl = wallpaper ? `${STATIC_URL}${wallpaper.downloadPath}` : '';
 
-  const displayName = wallpaper.name
-    .replace(/\.[^/.]+$/, '')
-    .replace(/[-_]/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const displayName = wallpaper
+    ? wallpaper.name
+        .replace(/\.[^/.]+$/, '')
+        .replace(/[-_]/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+    : '';
 
   useEffect(() => {
+    if (!wallpaper) return;
     const handleKey = (e) => {
       if (e.key === 'Escape') onClose();
     };
@@ -576,13 +602,15 @@ const Lightbox = ({ wallpaper, onClose, onSanctuary, onShowToast }) => {
       document.removeEventListener('keydown', handleKey);
       document.body.style.overflow = '';
     };
-  }, [onClose]);
+  }, [onClose, wallpaper]);
+
+  if (!wallpaper) return null;
 
   return (
-    <div className="lightbox-overlay" onClick={onClose}>
+    <div className="lightbox-overlay" role="button" tabIndex={0} onClick={onClose} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClose(); }}>
       <img src={imageUrl} alt="" className="lightbox-ambient-bg" />
       <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
-        <button className="lightbox-close" onClick={onClose}>
+        <button type="button" className="lightbox-close" onClick={onClose}>
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
         </button>
         <img src={imageUrl} alt={displayName} className="lightbox-main-img" />
@@ -601,6 +629,7 @@ const Lightbox = ({ wallpaper, onClose, onSanctuary, onShowToast }) => {
             Download
           </a>
           <button
+            type="button"
             className="lightbox-sanctuary-btn"
             onClick={() => onSanctuary(wallpaper)}
             title="Enter Focus Sanctuary"
@@ -619,35 +648,30 @@ const Lightbox = ({ wallpaper, onClose, onSanctuary, onShowToast }) => {
 
 
 
+const scrollUp = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
 const Footer = () => (
-  <footer style={{ 
-    marginTop: '6rem',
-    background: 'linear-gradient(to bottom, transparent, var(--color-surface-container))',
-    borderTop: '1px solid var(--color-outline-variant)',
-    padding: '4rem 2rem 2rem',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '2rem'
-  }}>
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+  <footer className="site-footer">
+    <div className="footer-brand">
       <span className="logo-text" style={{ fontSize: '2rem' }}>CozyPixels</span>
-      <p style={{ color: 'var(--color-on-surface-variant)', fontSize: '1rem', maxWidth: '400px', textAlign: 'center', lineHeight: '1.6' }}>
+      <p className="footer-tagline">
         Curating the most serene 4K wallpapers for your aesthetic workspace.
       </p>
     </div>
     
-    <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center', fontWeight: '500', fontFamily: 'var(--font-label)', letterSpacing: '0.05em', textTransform: 'uppercase', fontSize: '0.85rem' }}>
-      <a href="/about" style={{ color: 'var(--color-primary)', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color = '#1e2444'} onMouseOut={e => e.target.style.color = 'var(--color-primary)'}>About Us</a>
-      <a href="/faq" style={{ color: 'var(--color-primary)', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color = '#1e2444'} onMouseOut={e => e.target.style.color = 'var(--color-primary)'}>FAQ</a>
-      <a href="/privacy" style={{ color: 'var(--color-primary)', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color = '#1e2444'} onMouseOut={e => e.target.style.color = 'var(--color-primary)'}>Privacy Policy</a>
-      <a href="/terms" style={{ color: 'var(--color-primary)', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color = '#1e2444'} onMouseOut={e => e.target.style.color = 'var(--color-primary)'}>Terms & Conditions</a>
-      <a href="/contact" style={{ color: 'var(--color-primary)', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color = '#1e2444'} onMouseOut={e => e.target.style.color = 'var(--color-primary)'}>Contact</a>
+    <div className="footer-links">
+      <a href="/about" className="footer-link">About Us</a>
+      <a href="/faq" className="footer-link">FAQ</a>
+      <a href="/privacy" className="footer-link">Privacy Policy</a>
+      <a href="/terms" className="footer-link">Terms & Conditions</a>
+      <a href="/contact" className="footer-link">Contact</a>
     </div>
     
-    <div style={{ width: '100%', maxWidth: '800px', height: '1px', background: 'var(--color-outline-variant)', opacity: '0.3', margin: '1rem 0' }}></div>
+    <div className="footer-divider"></div>
     
-    <p style={{ color: 'var(--color-on-surface-variant)', fontSize: '0.9rem', opacity: '0.8' }}>
+    <p className="footer-copyright">
       © 2026 CozyPixels. Crafted for serenity.
     </p>
   </footer>
@@ -663,12 +687,9 @@ const ScrollToTop = () => {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const scrollUp = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   return (
     <button
+      type="button"
       className={`scroll-top-btn ${visible ? 'visible' : ''}`}
       onClick={scrollUp}
       aria-label="Scroll to top"
@@ -703,9 +724,15 @@ function App() {
     toastTimeoutRef.current = setTimeout(() => setToast(null), 3000);
   };
 
-  useEffect(() => {
+  const handleSearchChange = useCallback((val) => {
+    setSearchQuery(val);
     setDisplayCount(30);
-  }, [category, searchQuery]);
+  }, []);
+
+  const handleCategoryChange = useCallback((cat) => {
+    setCategory(cat);
+    setDisplayCount(30);
+  }, []);
 
   const enterSanctuary = (wallpaper) => {
     setPreviewWallpaper(null);
@@ -716,13 +743,7 @@ function App() {
     showToast("Entering Sanctuary Mode", "sanctuary");
   };
 
-  const detectBrowser = () => {
-    const ua = window.navigator.userAgent;
-    if (ua.indexOf("Edg") > -1) return { name: 'Edge', url: 'edge://extensions' };
-    if (ua.indexOf("OPR") > -1 || ua.indexOf("Opera") > -1) return { name: 'Opera', url: 'opera://extensions' };
-    if (ua.indexOf("Brave") > -1 || (navigator.brave && navigator.brave.isBrave)) return { name: 'Brave', url: 'brave://extensions' };
-    return { name: 'Chrome', url: 'chrome://extensions' };
-  };
+
 
   const handleExtensionInstall = () => {
     const browser = detectBrowser();
@@ -760,13 +781,13 @@ function App() {
 
   const categories = Array.isArray(wallpapers) ? [...new Set(wallpapers.map((w) => w.category))] : [];
 
-  const counts = {
-    total: wallpapers.length,
-    ...categories.reduce((acc, cat) => {
-      acc[cat] = wallpapers.filter((w) => w.category === cat).length;
-      return acc;
-    }, {}),
-  };
+  const counts = useMemo(() => {
+    const result = { total: wallpapers.length };
+    for (const w of wallpapers) {
+      result[w.category] = (result[w.category] || 0) + 1;
+    }
+    return result;
+  }, [wallpapers]);
 
   const filteredWallpapers = wallpapers
     .filter((w) => category === 'All' || w.category === category)
@@ -807,6 +828,7 @@ function App() {
           wallpapers={wallpapers}
           onPreview={setPreviewWallpaper}
         />
+        <Skiper34 />
         <ExtensionPromo onOpenModal={handleExtensionInstall} />
 
         <div id="gallery" className="container" style={{ paddingTop: '8px', paddingBottom: '16px' }}>
@@ -819,10 +841,11 @@ function App() {
             <span className="material-symbols-outlined search-icon">search</span>
             <input
               type="text"
+              aria-label="Search wallpapers"
               placeholder="Search wallpapers..."
               className="search-input"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
             />
           </motion.div>
         </div>
@@ -830,7 +853,7 @@ function App() {
         <CategoryFilter
           categories={categories}
           selected={category}
-          onSelect={setCategory}
+          onSelect={handleCategoryChange}
           counts={counts}
         />
         <section className="container gallery" aria-label="Wallpapers collection">

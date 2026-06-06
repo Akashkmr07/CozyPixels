@@ -5,6 +5,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import { LuPlay, LuPause, LuRotateCcw, LuVolume2, LuVolumeX, LuX, LuMaximize2, LuMinimize2, LuWind } from 'react-icons/lu';
 import { cn } from '../../lib/utils';
 
+const formatTime = (seconds) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
 const SanctuaryMode = ({ wallpaper, onClose }) => {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
@@ -15,12 +21,10 @@ const SanctuaryMode = ({ wallpaper, onClose }) => {
   const timerRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
 
-  // Sync initial fullscreen state
   useEffect(() => {
     setIsFullscreen(!!document.fullscreenElement);
   }, []);
 
-  // Timer Logic
   useEffect(() => {
     if (isActive && timeLeft > 0) {
       timerRef.current = setInterval(() => {
@@ -32,19 +36,17 @@ const SanctuaryMode = ({ wallpaper, onClose }) => {
     return () => clearInterval(timerRef.current);
   }, [isActive, timeLeft]);
 
-  // Audio Logic
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = 0.4;
       if (isActive && !isMuted) {
-        audioRef.current.play().catch(e => console.log("Audio play blocked"));
+        audioRef.current.play().catch(() => console.log("Audio play blocked"));
       } else {
         audioRef.current.pause();
       }
     }
   }, [isActive, isMuted]);
 
-  // Fullscreen Logic
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
@@ -57,7 +59,6 @@ const SanctuaryMode = ({ wallpaper, onClose }) => {
     }
   };
 
-  // Hide controls on inactivity
   const handleMouseMove = () => {
     setShowControls(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
@@ -66,11 +67,6 @@ const SanctuaryMode = ({ wallpaper, onClose }) => {
     }, 3000);
   };
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const resetTimer = () => {
     setIsActive(false);
@@ -94,9 +90,11 @@ const SanctuaryMode = ({ wallpaper, onClose }) => {
         ref={audioRef} 
         loop 
         src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" 
-      />
+      >
+        <track kind="captions" />
+      </audio>
 
-      <button className="sanctuary-close" onClick={onClose}>
+      <button type="button" className="sanctuary-close" onClick={onClose} aria-label="Close sanctuary">
         <LuX />
       </button>
 
@@ -114,12 +112,14 @@ const SanctuaryMode = ({ wallpaper, onClose }) => {
               
               <div className="timer-controls">
                 <button 
+                  type="button"
+                  aria-label={isActive ? "Pause timer" : "Play timer"}
                   className={cn("timer-btn main", isActive && "active")}
                   onClick={() => setIsActive(!isActive)}
                 >
                   {isActive ? <LuPause /> : <LuPlay />}
                 </button>
-                <button className="timer-btn" onClick={resetTimer}>
+                <button type="button" className="timer-btn" onClick={resetTimer} aria-label="Reset timer">
                   <LuRotateCcw />
                 </button>
               </div>
@@ -142,10 +142,10 @@ const SanctuaryMode = ({ wallpaper, onClose }) => {
             </div>
 
             <div className="sanctuary-actions">
-              <button className="sanctuary-btn" onClick={() => setIsMuted(!isMuted)}>
+              <button type="button" className="sanctuary-btn" onClick={() => setIsMuted(!isMuted)} aria-label={isMuted ? "Unmute" : "Mute"}>
                 {isMuted ? <LuVolumeX /> : <LuVolume2 />}
               </button>
-              <button className="sanctuary-btn" onClick={toggleFullscreen}>
+              <button type="button" className="sanctuary-btn" onClick={toggleFullscreen} aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}>
                 {isFullscreen ? <LuMinimize2 /> : <LuMaximize2 />}
               </button>
             </div>
