@@ -370,7 +370,7 @@ const ExtensionPromo = ({ onOpenModal }) => {
           </m.button>
           <m.a 
             className="apple-promo-btn" 
-            href="https://github.com/yadavnikhil03/CozyPixels/releases/latest/download/CozyPixels_1.0.8_x64-setup.exe"
+            href="https://github.com/yadavnikhil03/CozyPixels/releases/latest"
             style={{ backgroundColor: 'transparent', border: '1px solid rgba(255, 255, 255, 0.5)', color: '#ffffff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
             whileHover={{ scale: 1.05, backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: '#ffffff' }}
             whileTap={{ scale: 0.95 }}
@@ -439,10 +439,13 @@ const ExtensionPromo = ({ onOpenModal }) => {
 const EMPTY_WALLPAPERS = [];
 
 const HorizontalShowcase = ({ wallpapers = EMPTY_WALLPAPERS, onPreview }) => {
-  if (!wallpapers.length) return null;
+  const showcaseWallpapers = useMemo(() => {
+    return wallpapers.slice(0, 12);
+  }, [wallpapers]);
 
+  if (!showcaseWallpapers.length) return null;
 
-  const infiniteWallpapers = [...wallpapers, ...wallpapers];
+  const infiniteWallpapers = [...showcaseWallpapers, ...showcaseWallpapers];
 
   return (
     <section className="showcase-section-drag">
