@@ -1,5 +1,7 @@
 import {
-  motion,
+  LazyMotion,
+  domAnimation,
+  m,
   useScroll,
   useTransform,
 } from "motion/react";
@@ -77,63 +79,65 @@ const letterVariants = {
 
 const Skiper34 = () => {
   return (
-    <ReactLenis root>
-      <section className="skiper-section">
-        <div className="skiper-header">
-          <motion.span 
-            className="skiper-eyebrow"
-            initial={{ opacity: 0, y: -10 }}
-            whileInView={{ opacity: 0.55, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6 }}
-          >
-            Interactive Spotlight
-          </motion.span>
-          <motion.h2 
-            className="skiper-title"
-            variants={titleContainerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", columnGap: "0.3em", rowGap: "0.1em" }}
-          >
-            {titleWords.map((word, wordIdx) => (
-              <span key={wordIdx} style={{ display: "inline-block", whiteSpace: "nowrap" }}>
-                {Array.from(word).map((char, charIdx) => {
-                  // Calculate absolute index in the original string for animation stagger ordering
-                  const prevWordsLength = titleWords.slice(0, wordIdx).join("").length;
-                  const absoluteIdx = prevWordsLength + charIdx;
-                  return (
-                    <motion.span
-                      key={charIdx}
-                      variants={letterVariants}
-                      custom={absoluteIdx}
-                      style={{ display: "inline-block" }}
-                    >
-                      {char}
-                    </motion.span>
-                  );
-                })}
-              </span>
+    <LazyMotion features={domAnimation}>
+      <ReactLenis root>
+        <section className="skiper-section">
+          <div className="skiper-header">
+            <m.span 
+              className="skiper-eyebrow"
+              initial={{ opacity: 0, y: -10 }}
+              whileInView={{ opacity: 0.55, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.6 }}
+            >
+              Interactive Spotlight
+            </m.span>
+            <m.h2 
+              className="skiper-title"
+              variants={titleContainerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", columnGap: "0.3em", rowGap: "0.1em" }}
+            >
+              {titleWords.map((word, wordIdx) => (
+                <span key={wordIdx} style={{ display: "inline-block", whiteSpace: "nowrap" }}>
+                  {Array.from(word).map((char, charIdx) => {
+                    // Calculate absolute index in the original string for animation stagger ordering
+                    const prevWordsLength = titleWords.slice(0, wordIdx).join("").length;
+                    const absoluteIdx = prevWordsLength + charIdx;
+                    return (
+                      <m.span
+                        key={charIdx}
+                        variants={letterVariants}
+                        custom={absoluteIdx}
+                        style={{ display: "inline-block" }}
+                      >
+                        {char}
+                      </m.span>
+                    );
+                  })}
+                </span>
+              ))}
+            </m.h2>
+            <m.p 
+              className="skiper-desc"
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+            >
+              Scroll down to explore our handpicked digital sanctuaries. Each stack reveals a new visual realm.
+            </m.p>
+          </div>
+          <div className="skiper-cards-container">
+            {featuredCollections.map((col, idx) => (
+              <StickyCard_003 key={col.title} collection={col} index={idx} />
             ))}
-          </motion.h2>
-          <motion.p 
-            className="skiper-desc"
-            initial={{ opacity: 0, y: 15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-          >
-            Scroll down to explore our handpicked digital sanctuaries. Each stack reveals a new visual realm.
-          </motion.p>
-        </div>
-        <div className="skiper-cards-container">
-          {featuredCollections.map((col, idx) => (
-            <StickyCard_003 key={col.title} collection={col} index={idx} />
-          ))}
-        </div>
-      </section>
-    </ReactLenis>
+          </div>
+        </section>
+      </ReactLenis>
+    </LazyMotion>
   );
 };
 
@@ -157,7 +161,7 @@ const StickyCard_003 = ({ collection, index }) => {
 
   return (
     <div ref={container} className="skiper-card-wrapper">
-      <motion.div
+      <m.div
         className="skiper-card"
         style={{
           scale,
@@ -167,7 +171,7 @@ const StickyCard_003 = ({ collection, index }) => {
           top: `${12 + index * 2.5}vh`,
         }}
       >
-        <motion.img
+        <m.img
           src={getImageUrl(collection.img)}
           alt={collection.title}
           style={{
@@ -188,7 +192,7 @@ const StickyCard_003 = ({ collection, index }) => {
           <span className="skiper-card-badge">{collection.category}</span>
           <h3 className="skiper-card-title">{collection.title}</h3>
           <p className="skiper-card-desc">{collection.desc}</p>
-          <motion.a 
+          <m.a 
             href={collection.link} 
             className="skiper-card-btn"
             whileHover={{ scale: 1.05 }}
@@ -196,9 +200,9 @@ const StickyCard_003 = ({ collection, index }) => {
             transition={{ type: "spring", stiffness: 300, damping: 10 }}
           >
             Explore Collection <LuChevronRight />
-          </motion.a>
+          </m.a>
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 };

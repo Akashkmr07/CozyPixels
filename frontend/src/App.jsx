@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useDeferredValue, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { LazyMotion, domAnimation, m, AnimatePresence } from 'motion/react';
 import { LuGithub, LuSparkles, LuWind, LuRotateCcw, LuChevronRight, LuCopy, LuCheck, LuImage, LuTrees, LuBuilding, LuMoon, LuSun, LuPalette, LuLayoutGrid } from 'react-icons/lu';
 import SanctuaryMode from './components/forgeui/sanctuary-mode';
 import FaqSection from './components/FaqSection';
@@ -70,7 +70,7 @@ const ExtensionModal = ({ onClose, browser }) => {
   };
 
   return (
-    <motion.div
+    <m.div
       className="lightbox-overlay extension-modal-overlay"
       onClick={onClose}
       variants={modalBackdropVariants}
@@ -78,7 +78,7 @@ const ExtensionModal = ({ onClose, browser }) => {
       animate="visible"
       exit="exit"
     >
-      <motion.div
+      <m.div
         className="extension-modal-content"
         onClick={(e) => e.stopPropagation()}
         variants={modalCardVariants}
@@ -101,10 +101,10 @@ const ExtensionModal = ({ onClose, browser }) => {
             <div className="step-text">
               <strong>Open Extensions Page</strong>
               <p>Copy this address and paste it into a new tab:</p>
-              <div className="copy-url-bar" role="button" tabIndex={0} onClick={copyUrl} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') copyUrl(); }}>
+              <button type="button" className="copy-url-bar" style={{ width: '100%', fontFamily: 'inherit', fontSize: 'inherit', textAlign: 'left' }} onClick={copyUrl}>
                 <code>{browser.url}</code>
                 {copied ? <LuCheck style={{ color: '#27c93f' }} /> : <LuCopy />}
-              </div>
+              </button>
             </div>
           </div>
 
@@ -125,8 +125,8 @@ const ExtensionModal = ({ onClose, browser }) => {
             I've loaded the Engine!
           </button>
         </div>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 };
 
@@ -181,7 +181,7 @@ const Hero = () => (
 
     <div id="about" className="hero-split-container">
       {/* LEFT: Text content */}
-      <motion.div
+      <m.div
         className="hero-left"
         initial={{ opacity: 0, x: -30 }}
         animate={{ opacity: 1, x: 0 }}
@@ -192,7 +192,7 @@ const Hero = () => (
           <span className="hero-title-line">Space Starts Here</span>
         </h1>
 
-        <motion.p
+        <m.p
           className="hero-subtitle-split"
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -200,9 +200,9 @@ const Hero = () => (
         >
           Minimalist wallpapers, obsessively curated. Pick your vibe,
           transform your desktop into a place you actually want to look at.
-        </motion.p>
+        </m.p>
 
-        <motion.div
+        <m.div
           className="hero-actions-row"
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -221,11 +221,11 @@ const Hero = () => (
             <span className="creator-pill-text">by <strong>@yadavnikhil03</strong></span>
             <LuGithub className="creator-pill-icon" />
           </a>
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
       {/* RIGHT: Wallpaper mosaic */}
-      <motion.div
+      <m.div
         className="hero-right"
         initial={{ opacity: 0, x: 30 }}
         animate={{ opacity: 1, x: 0 }}
@@ -233,7 +233,7 @@ const Hero = () => (
       >
         <div className="hero-mosaic">
           {HERO_WALLPAPERS.slice(0, 9).map((path, i) => (
-            <motion.div
+            <m.div
               key={path}
               className={`mosaic-card mosaic-card-${i}`}
               whileHover={{ scale: 1.04, zIndex: 10 }}
@@ -248,12 +248,12 @@ const Hero = () => (
                 loading="eager"
                 decoding="async"
               />
-            </motion.div>
+            </m.div>
           ))}
         </div>
         <div className="hero-mosaic-fade-bottom" />
         <div className="hero-mosaic-fade-right" />
-      </motion.div>
+      </m.div>
     </div>
   </div>
 );
@@ -279,7 +279,7 @@ const CategoryFilter = ({ categories, selected, onSelect, counts }) => (
       aria-pressed={selected === 'All'}
     >
       {selected === 'All' && (
-        <motion.div
+        <m.div
           layoutId="activeFilterBg"
           className="active-filter-bg"
           transition={{ type: 'spring', stiffness: 350, damping: 28 }}
@@ -298,7 +298,7 @@ const CategoryFilter = ({ categories, selected, onSelect, counts }) => (
         aria-pressed={selected === cat}
       >
         {selected === cat && (
-          <motion.div
+          <m.div
             layoutId="activeFilterBg"
             className="active-filter-bg"
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
@@ -339,7 +339,7 @@ const ExtensionPromo = ({ onOpenModal }) => {
   const currentWallpaper = MOCKUP_WALLPAPERS[wallpaperIdx];
 
   return (
-  <motion.section
+  <m.section
     className="container apple-promo-section"
     variants={promoSectionVariants}
     initial="hidden"
@@ -350,25 +350,25 @@ const ExtensionPromo = ({ onOpenModal }) => {
       <div className="apple-promo-bg-glow"></div>
       
       <div className="apple-promo-header">
-        <motion.div className="apple-promo-eyebrow" variants={promoItemVariants}>
+        <m.div className="apple-promo-eyebrow" variants={promoItemVariants}>
           Apps & Extensions
-        </motion.div>
-        <motion.h2 className="apple-promo-title" variants={promoItemVariants}>
+        </m.div>
+        <m.h2 className="apple-promo-title" variants={promoItemVariants}>
           Your screen.<br/>Reimagined.
-        </motion.h2>
-        <motion.p className="apple-promo-subtitle" variants={promoItemVariants}>
+        </m.h2>
+        <m.p className="apple-promo-subtitle" variants={promoItemVariants}>
           Transform your desktop and browser into a serene digital sanctuary with our standalone app and browser extension.
-        </motion.p>
-        <motion.div className="apple-promo-actions" variants={promoItemVariants} style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '16px' }}>
-          <motion.button 
+        </m.p>
+        <m.div className="apple-promo-actions" variants={promoItemVariants} style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '16px' }}>
+          <m.button 
             className="apple-promo-btn" 
             onClick={onOpenModal}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
             Install Extension
-          </motion.button>
-          <motion.a 
+          </m.button>
+          <m.a 
             className="apple-promo-btn" 
             href="https://github.com/yadavnikhil03/CozyPixels/releases/latest/download/CozyPixels_1.0.8_x64-setup.exe"
             style={{ backgroundColor: 'transparent', border: '1px solid rgba(255, 255, 255, 0.5)', color: '#ffffff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
@@ -376,11 +376,11 @@ const ExtensionPromo = ({ onOpenModal }) => {
             whileTap={{ scale: 0.95 }}
           >
             Download Desktop App
-          </motion.a>
-        </motion.div>
+          </m.a>
+        </m.div>
       </div>
 
-      <motion.div 
+      <m.div 
         className="apple-promo-visual"
         variants={promoItemVariants}
       >
@@ -414,9 +414,9 @@ const ExtensionPromo = ({ onOpenModal }) => {
             </div>
           </div>
         </div>
-      </motion.div>
+      </m.div>
 
-      <motion.div className="apple-promo-features" variants={promoItemVariants}>
+      <m.div className="apple-promo-features" variants={promoItemVariants}>
         <div className="apple-feature-card">
           <LuSparkles className="feature-icon" />
           <span>Fast install & startup</span>
@@ -429,9 +429,9 @@ const ExtensionPromo = ({ onOpenModal }) => {
           <LuRotateCcw className="feature-icon" />
           <span>Wallpaper rotation controls</span>
         </div>
-      </motion.div>
+      </m.div>
     </div>
-  </motion.section>
+  </m.section>
   );
 };
 
@@ -447,15 +447,15 @@ const HorizontalShowcase = ({ wallpapers = EMPTY_WALLPAPERS, onPreview }) => {
   return (
     <section className="showcase-section-drag">
       <div className="showcase-intro-block">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="showcase-intro-label"
         >
           Curated Collection
-        </motion.div>
-        <motion.h2
+        </m.div>
+        <m.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -463,8 +463,8 @@ const HorizontalShowcase = ({ wallpapers = EMPTY_WALLPAPERS, onPreview }) => {
           className="showcase-intro-title"
         >
           The Serene Gallery
-        </motion.h2>
-        <motion.p
+        </m.h2>
+        <m.p
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -472,14 +472,14 @@ const HorizontalShowcase = ({ wallpapers = EMPTY_WALLPAPERS, onPreview }) => {
           className="showcase-intro-desc"
         >
           Discover our hand-picked selection of minimalist artworks, perfectly framed for your digital space. Pause by hovering.
-        </motion.p>
+        </m.p>
       </div>
 
       <div className="showcase-marquee-container">
         <div className="showcase-marquee-track">
           {infiniteWallpapers.map((wp, index) => {
             return (
-              <motion.div
+              <m.div
                 key={`${wp.path}-${index}`}
                 className="showcase-card"
                 onClick={() => onPreview(wp)}
@@ -501,7 +501,7 @@ const HorizontalShowcase = ({ wallpapers = EMPTY_WALLPAPERS, onPreview }) => {
                     {wp.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                   </p>
                 </div>
-              </motion.div>
+              </m.div>
             );
           })}
         </div>
@@ -523,7 +523,7 @@ const WallpaperCard = React.memo(({ wallpaper, onPreview, onShowToast }) => {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
-    <motion.div
+    <m.div
       layout
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -575,7 +575,7 @@ const WallpaperCard = React.memo(({ wallpaper, onPreview, onShowToast }) => {
           </div>
         </div>
       )}
-    </motion.div>
+    </m.div>
   );
 });
 
@@ -591,10 +591,15 @@ const Lightbox = ({ wallpaper, onClose, onSanctuary, onShowToast }) => {
         .replace(/\b\w/g, (c) => c.toUpperCase())
     : '';
 
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!wallpaper) return;
     const handleKey = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
     document.addEventListener('keydown', handleKey);
     document.body.style.overflow = 'hidden';
@@ -602,12 +607,18 @@ const Lightbox = ({ wallpaper, onClose, onSanctuary, onShowToast }) => {
       document.removeEventListener('keydown', handleKey);
       document.body.style.overflow = '';
     };
-  }, [onClose, wallpaper]);
+  }, [wallpaper]);
 
   if (!wallpaper) return null;
 
   return (
-    <div className="lightbox-overlay" role="button" tabIndex={0} onClick={onClose} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClose(); }}>
+    <div className="lightbox-overlay">
+      <button 
+        type="button" 
+        className="lightbox-backdrop-btn" 
+        onClick={onClose} 
+        aria-label="Close lightbox"
+      />
       <img src={imageUrl} alt="" className="lightbox-ambient-bg" />
       <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="lightbox-close" onClick={onClose}>
@@ -701,38 +712,64 @@ const ScrollToTop = () => {
 };
 
 
+function getWallpapers(callback) {
+  fetch('/wallpapers.json')
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      return res.json();
+    })
+    .then(data => {
+      if (Array.isArray(data)) {
+        callback(data);
+      } else {
+        console.error('Data is not an array:', data);
+      }
+    })
+    .catch((err) => {
+      console.error('Error fetching wallpapers:', err);
+    });
+}
+
 function App() {
   const [wallpapers, setWallpapers] = useState([]);
   const [category, setCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
-  const [previewWallpaper, setPreviewWallpaper] = useState(null);
-  const [sanctuaryWallpaper, setSanctuaryWallpaper] = useState(null);
-  const [showExtensionModal, setShowExtensionModal] = useState(false);
-  const [browserInfo, setBrowserInfo] = useState({ name: 'Chrome', url: 'chrome://extensions' });
-  const [toast, setToast] = useState(null);
-
-  const [displayCount, setDisplayCount] = useState(30);
+  const [uiState, setUiState] = useState({
+    previewWallpaper: null,
+    sanctuaryWallpaper: null,
+    showExtensionModal: false,
+    browserInfo: { name: 'Chrome', url: 'chrome://extensions' },
+    toast: null,
+    displayCount: 30
+  });
+  const { previewWallpaper, sanctuaryWallpaper, showExtensionModal, browserInfo, toast, displayCount } = uiState;
+  const setPreviewWallpaper = useCallback((val) => setUiState(prev => ({ ...prev, previewWallpaper: val })), []);
+  const setSanctuaryWallpaper = useCallback((val) => setUiState(prev => ({ ...prev, sanctuaryWallpaper: val })), []);
+  const setShowExtensionModal = useCallback((val) => setUiState(prev => ({ ...prev, showExtensionModal: val })), []);
+  const setBrowserInfo = useCallback((val) => setUiState(prev => ({ ...prev, browserInfo: val })), []);
+  const setToast = useCallback((val) => setUiState(prev => ({ ...prev, toast: typeof val === 'function' ? val(prev.toast) : val })), []);
+  const setDisplayCount = useCallback((val) => setUiState(prev => ({ ...prev, displayCount: typeof val === 'function' ? val(prev.displayCount) : val })), []);
   const loaderRef = useRef(null);
 
   const toastTimeoutRef = useRef(null);
 
-  const showToast = (msg, type = 'default') => {
+  const showToast = useCallback((msg, type = 'default') => {
     setToast({ message: msg, type });
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     toastTimeoutRef.current = setTimeout(() => setToast(null), 3000);
-  };
+  }, [setToast]);
 
   const handleSearchChange = useCallback((val) => {
     setSearchQuery(val);
     setDisplayCount(30);
-  }, []);
+  }, [setSearchQuery, setDisplayCount]);
 
   const handleCategoryChange = useCallback((cat) => {
     setCategory(cat);
     setDisplayCount(30);
-  }, []);
+  }, [setCategory, setDisplayCount]);
 
   const enterSanctuary = (wallpaper) => {
     setPreviewWallpaper(null);
@@ -761,21 +798,7 @@ function App() {
   };
 
   useEffect(() => {
-    fetch('/wallpapers.json')
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
-        if (Array.isArray(data)) {
-          setWallpapers(data);
-        } else {
-          console.error('Data is not an array:', data);
-        }
-      })
-      .catch((err) => {
-        console.error('Error fetching wallpapers:', err);
-      });
+    getWallpapers(setWallpapers);
   }, []);
 
 
@@ -789,16 +812,15 @@ function App() {
     return result;
   }, [wallpapers]);
 
-  const filteredWallpapers = wallpapers
-    .filter((w) => category === 'All' || w.category === category)
-    .filter((w) => {
-      if (!deferredSearchQuery.trim()) return true;
-      const q = deferredSearchQuery.toLowerCase();
-      return (
-        w.name.toLowerCase().includes(q) ||
-        w.category.toLowerCase().includes(q)
-      );
-    });
+  const filteredWallpapers = wallpapers.filter((w) => {
+    if (category !== 'All' && w.category !== category) return false;
+    if (!deferredSearchQuery.trim()) return true;
+    const q = deferredSearchQuery.toLowerCase();
+    return (
+      w.name.toLowerCase().includes(q) ||
+      w.category.toLowerCase().includes(q)
+    );
+  });
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -813,13 +835,14 @@ function App() {
     return () => {
       if (currentRef) observer.unobserve(currentRef);
     };
-  }, [filteredWallpapers.length]);
+  }, [filteredWallpapers.length, setDisplayCount]);
 
-  const closeLightbox = useCallback(() => setPreviewWallpaper(null), []);
+  const closeLightbox = useCallback(() => setPreviewWallpaper(null), [setPreviewWallpaper]);
 
 
   return (
-    <div>
+    <LazyMotion features={domAnimation}>
+      <div>
       <Header totalCount={wallpapers.length} />
       <main>
         <Hero totalCount={wallpapers.length} />
@@ -832,7 +855,7 @@ function App() {
         <ExtensionPromo onOpenModal={handleExtensionInstall} />
 
         <div id="gallery" className="container" style={{ paddingTop: '8px', paddingBottom: '16px' }}>
-          <motion.div
+          <m.div
             className="search-wrapper"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -847,7 +870,7 @@ function App() {
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
             />
-          </motion.div>
+          </m.div>
         </div>
 
         <CategoryFilter
@@ -918,7 +941,7 @@ function App() {
 
       <AnimatePresence>
         {toast && (
-          <motion.div
+          <m.div
             className="dynamic-island-toast"
             initial={{ opacity: 0, x: "-50%", y: -40, scale: 0.8, filter: 'blur(10px)' }}
             animate={{ opacity: 1, x: "-50%", y: 0, scale: 1, filter: 'blur(0px)' }}
@@ -931,11 +954,12 @@ function App() {
               </span>
               <span className="dynamic-island-text">{toast.message}</span>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
-    </div>
+      </div>
+    </LazyMotion>
   );
 }
 

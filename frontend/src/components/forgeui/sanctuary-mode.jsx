@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { LazyMotion, domAnimation, m, AnimatePresence } from 'motion/react';
 import { LuPlay, LuPause, LuRotateCcw, LuVolume2, LuVolumeX, LuX, LuMaximize2, LuMinimize2, LuWind } from 'react-icons/lu';
 import { cn } from '../../lib/utils';
 
@@ -12,18 +12,24 @@ const formatTime = (seconds) => {
 };
 
 const SanctuaryMode = ({ wallpaper, onClose }) => {
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
-  const [isActive, setIsActive] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showControls, setShowControls] = useState(true);
+  const [state, setState] = useState({
+    timeLeft: 25 * 60,
+    isActive: false,
+    isMuted: false,
+    isFullscreen: typeof document !== 'undefined' ? !!document.fullscreenElement : false,
+    showControls: true
+  });
+  const { timeLeft, isActive, isMuted, isFullscreen, showControls } = state;
+
+  const setTimeLeft = (val) => setState(prev => ({ ...prev, timeLeft: typeof val === 'function' ? val(prev.timeLeft) : val }));
+  const setIsActive = (val) => setState(prev => ({ ...prev, isActive: typeof val === 'function' ? val(prev.isActive) : val }));
+  const setIsMuted = (val) => setState(prev => ({ ...prev, isMuted: typeof val === 'function' ? val(prev.isMuted) : val }));
+  const setIsFullscreen = (val) => setState(prev => ({ ...prev, isFullscreen: typeof val === 'function' ? val(prev.isFullscreen) : val }));
+  const setShowControls = (val) => setState(prev => ({ ...prev, showControls: typeof val === 'function' ? val(prev.showControls) : val }));
+
   const audioRef = useRef(null);
   const timerRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
-
-  useEffect(() => {
-    setIsFullscreen(!!document.fullscreenElement);
-  }, []);
 
   useEffect(() => {
     if (isActive && timeLeft > 0) {
@@ -67,92 +73,94 @@ const SanctuaryMode = ({ wallpaper, onClose }) => {
     }, 3000);
   };
 
-
   const resetTimer = () => {
     setIsActive(false);
     setTimeLeft(25 * 60);
   };
 
   return (
-    <motion.div 
-      className="sanctuary-overlay"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onMouseMove={handleMouseMove}
-    >
-      <div className="sanctuary-bg-wrap">
-        <img src={wallpaper} alt="Sanctuary" className="sanctuary-img" />
-        <div className="sanctuary-vignette" />
-      </div>
-
-      <audio 
-        ref={audioRef} 
-        loop 
-        src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" 
+    <LazyMotion features={domAnimation}>
+      <m.div 
+        className="sanctuary-overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onMouseMove={handleMouseMove}
       >
-        <track kind="captions" />
-      </audio>
+        <div className="sanctuary-bg-wrap">
+          <img src={wallpaper} alt="Sanctuary" className="sanctuary-img" />
+          <div className="sanctuary-vignette" />
+        </div>
 
-      <button type="button" className="sanctuary-close" onClick={onClose} aria-label="Close sanctuary">
-        <LuX />
-      </button>
+        <audio 
+          ref={audioRef} 
+          loop 
+          src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" 
+          aria-label="Ambient background track"
+        >
+          <track kind="captions" />
+        </audio>
 
-      <div className="sanctuary-content">
+        <button type="button" className="sanctuary-close" onClick={onClose} aria-label="Close sanctuary">
+          <LuX />
+        </button>
+
+        <div className="sanctuary-content">
+          <AnimatePresence>
+            {showControls && (
+              <m.div 
+                className="sanctuary-timer-card"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+              >
+                <div className="timer-label">Focus Session</div>
+                <div className="timer-display">{formatTime(timeLeft)}</div>
+                
+                <div className="timer-controls">
+                  <button 
+                    type="button"
+                    aria-label={isActive ? "Pause timer" : "Play timer"}
+                    className={cn("timer-btn main", isActive && "active")}
+                    onClick={() => setIsActive(!isActive)}
+                  >
+                    {isActive ? <LuPause /> : <LuPlay />}
+                  </button>
+                  <button type="button" className="timer-btn" onClick={resetTimer} aria-label="Reset timer">
+                    <LuRotateCcw />
+                  </button>
+                </div>
+              </m.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         <AnimatePresence>
           {showControls && (
-            <motion.div 
-              className="sanctuary-timer-card"
+            <m.div 
+              className="sanctuary-footer"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
             >
-              <div className="timer-label">Focus Session</div>
-              <div className="timer-display">{formatTime(timeLeft)}</div>
-              
-              <div className="timer-controls">
-                <button 
-                  type="button"
-                  aria-label={isActive ? "Pause timer" : "Play timer"}
-                  className={cn("timer-btn main", isActive && "active")}
-                  onClick={() => setIsActive(!isActive)}
-                >
-                  {isActive ? <LuPause /> : <LuPlay />}
+              <div className="sanctuary-info">
+                <LuWind className="ambient-icon" />
+                <span>Ambient Serenity Active</span>
+              </div>
+
+              <div className="sanctuary-actions">
+                <button type="button" className="sanctuary-btn" onClick={() => setIsMuted(!isMuted)} aria-label={isMuted ? "Unmute" : "Mute"}>
+                  {isMuted ? <LuVolumeX /> : <LuVolume2 />}
                 </button>
-                <button type="button" className="timer-btn" onClick={resetTimer} aria-label="Reset timer">
-                  <LuRotateCcw />
+                <button type="button" className="sanctuary-btn" onClick={toggleFullscreen} aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}>
+                  {isFullscreen ? <LuMinimize2 /> : <LuMaximize2 />}
                 </button>
               </div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
-      </div>
-
-      <AnimatePresence>
-        {showControls && (
-          <motion.div 
-            className="sanctuary-footer"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-          >
-            <div className="sanctuary-info">
-              <LuWind className="ambient-icon" />
-              <span>Ambient Serenity Active</span>
-            </div>
-
-            <div className="sanctuary-actions">
-              <button type="button" className="sanctuary-btn" onClick={() => setIsMuted(!isMuted)} aria-label={isMuted ? "Unmute" : "Mute"}>
-                {isMuted ? <LuVolumeX /> : <LuVolume2 />}
-              </button>
-              <button type="button" className="sanctuary-btn" onClick={toggleFullscreen} aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}>
-                {isFullscreen ? <LuMinimize2 /> : <LuMaximize2 />}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+      </m.div>
+    </LazyMotion>
   );
 };
 
