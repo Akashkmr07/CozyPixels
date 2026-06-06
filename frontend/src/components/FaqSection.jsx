@@ -48,8 +48,7 @@ export default function FaqSection() {
   return (
     <LazyMotion features={domAnimation}>
       <section style={{ width: '100%', maxWidth: '900px', margin: '0 auto', padding: '64px 24px' }}>
-        {/* Invisible Schema Markup for Google SEO */}
-        <script type="application/ld+json">{JSON.stringify(schemaData)}</script>
+        <script type="application/ld+json">{JSON.stringify(schemaData, null, 2)}</script>
 
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <h2 className="font-display" style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '16px', color: '#1e2444', letterSpacing: '-0.04em' }}>Frequently Asked Questions</h2>
