@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef, useDeferredValue, useMemo } from 'react';
 import { LazyMotion, domAnimation, m, AnimatePresence } from 'motion/react';
-import { LuGithub, LuSparkles, LuWind, LuRotateCcw, LuChevronRight, LuCopy, LuCheck, LuImage, LuTrees, LuBuilding, LuMoon, LuSun, LuPalette, LuLayoutGrid } from 'react-icons/lu';
+import { LuGithub, LuSparkles, LuWind, LuRotateCcw, LuChevronRight, LuChevronLeft, LuCopy, LuCheck, LuImage, LuTrees, LuBuilding, LuMoon, LuSun, LuPalette, LuLayoutGrid } from 'react-icons/lu';
+import useEmblaCarousel from 'embla-carousel-react';
+import Autoplay from 'embla-carousel-autoplay';
 import SanctuaryMode from './components/forgeui/sanctuary-mode';
 import FaqSection from './components/FaqSection';
 import Skiper34 from './components/Skiper34';
+import Skiper19 from './components/Skiper19';
 import './index.css';
 
 const STATIC_URL = import.meta.env.PROD ? 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public' : '';
@@ -393,24 +396,36 @@ const ExtensionPromo = ({ onOpenModal }) => {
             </div>
             <div className="apple-browser-bar"></div>
           </div>
-          <div 
-            className="apple-browser-body"
-            style={{
-              backgroundImage: `url('${imageUrl(currentWallpaper.path)}')`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              opacity: fade ? 1 : 0,
-              transition: 'opacity 0.4s ease',
-            }}
-          >
+          <div className="apple-browser-body">
+            <div 
+              className="apple-browser-bg-layer"
+              style={{
+                backgroundImage: `url('${imageUrl(currentWallpaper.path)}')`,
+                opacity: fade ? 1 : 0,
+              }}
+            />
+            <div className="apple-browser-overlay-dark" />
+
             <div className="new-tab-content">
               <h1 className="new-tab-clock">17:36</h1>
-              <p className="new-tab-quote">Breathe in, breathe out.</p>
+              <p className="new-tab-quote">“Breathe in, breathe out.”</p>
+              
+              <div className="new-tab-search-mockup">
+                <LuSparkles style={{ fontSize: '13px', opacity: 0.8 }} />
+                <span>Search with Cozy Engine...</span>
+              </div>
+
+              <div className="new-tab-shortcuts">
+                <span className="shortcut-dot"><LuLayoutGrid /></span>
+                <span className="shortcut-dot"><LuImage /></span>
+                <span className="shortcut-dot"><LuWind /></span>
+                <span className="shortcut-dot"><LuRotateCcw /></span>
+              </div>
             </div>
             
             <div className="new-tab-footer">
-              <span className="new-tab-credit">{currentWallpaper.name}</span>
-              <span className="new-tab-brand">Cozy Engine</span>
+              <span className="new-tab-credit">wallpaper: {currentWallpaper.name}</span>
+              <span className="new-tab-brand">Cozy Engine v1.2</span>
             </div>
           </div>
         </div>
@@ -443,9 +458,30 @@ const HorizontalShowcase = ({ wallpapers = EMPTY_WALLPAPERS, onPreview }) => {
     return wallpapers.slice(0, 12);
   }, [wallpapers]);
 
-  if (!showcaseWallpapers.length) return null;
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    { loop: true, slidesToScroll: 1 },
+    [
+      Autoplay({
+        delay: 1300,
+        stopOnInteraction: false,
+        stopOnMouseEnter: false,
+      }),
+    ]
+  );
+  const [current, setCurrent] = useState(0);
 
-  const infiniteWallpapers = [...showcaseWallpapers, ...showcaseWallpapers];
+  useEffect(() => {
+    if (!emblaApi) return;
+    emblaApi.on("select", () => {
+      setCurrent(emblaApi.selectedScrollSnap());
+    });
+  }, [emblaApi]);
+
+  const scrollPrev = useCallback(() => emblaApi && emblaApi.scrollPrev(), [emblaApi]);
+  const scrollNext = useCallback(() => emblaApi && emblaApi.scrollNext(), [emblaApi]);
+  const scrollTo = useCallback((index) => emblaApi && emblaApi.scrollTo(index), [emblaApi]);
+
+  if (!showcaseWallpapers.length) return null;
 
   return (
     <section className="showcase-section-drag">
@@ -474,39 +510,65 @@ const HorizontalShowcase = ({ wallpapers = EMPTY_WALLPAPERS, onPreview }) => {
           transition={{ delay: 0.2 }}
           className="showcase-intro-desc"
         >
-          Discover our hand-picked selection of minimalist artworks, perfectly framed for your digital space. Pause by hovering.
+          Discover our hand-picked selection of minimalist artworks, perfectly framed for your digital space. Swipe to explore.
         </m.p>
       </div>
 
-      <div className="showcase-marquee-container">
-        <div className="showcase-marquee-track">
-          {infiniteWallpapers.map((wp, index) => {
-            return (
-              <m.div
-                key={`${wp.path}-${index}`}
-                className="showcase-card"
-                onClick={() => onPreview(wp)}
-                whileHover={{ scale: 0.98 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-              >
-                <div className="showcase-card-overlay" />
-                <img
-                  src={`${STATIC_URL}${wp.path}`}
-                  alt={wp.name}
-                  className="showcase-card-img"
-                  draggable="false"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <div className="showcase-card-content">
-                  <p className="showcase-card-cat">{wp.category}</p>
-                  <p className="showcase-card-title">
-                    {wp.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                  </p>
-                </div>
-              </m.div>
-            );
-          })}
+      <div className="carousel-wrapper">
+        <div className="carousel-viewport" ref={emblaRef}>
+          <div className="carousel-container">
+            {showcaseWallpapers.map((wp, index) => (
+              <div key={`${wp.path}-${index}`} className="carousel-slide">
+                <m.div
+                  initial={false}
+                  animate={{
+                    clipPath:
+                      current !== index
+                        ? "inset(12% 0 12% 0 round 24px)"
+                        : "inset(0% 0 0% 0 round 24px)",
+                  }}
+                  transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                  className="carousel-card-inner"
+                  onClick={() => onPreview(wp)}
+                >
+                  <img
+                    src={`${STATIC_URL}${wp.path}`}
+                    alt={wp.name}
+                    className="carousel-img"
+                    draggable="false"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <div className="carousel-overlay" />
+                  <div className="carousel-slide-content">
+                    <p className="carousel-slide-cat">{wp.category}</p>
+                    <p className="carousel-slide-title">
+                      {wp.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </p>
+                  </div>
+                </m.div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="carousel-controls">
+          <button className="carousel-btn prev" aria-label="Previous slide" onClick={scrollPrev}>
+            <LuChevronLeft />
+          </button>
+          <div className="carousel-dots">
+            {showcaseWallpapers.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => scrollTo(index)}
+                className={`carousel-dot ${current === index ? 'active' : ''}`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
+          <button className="carousel-btn next" aria-label="Next slide" onClick={scrollNext}>
+            <LuChevronRight />
+          </button>
         </div>
       </div>
     </section>
@@ -854,6 +916,7 @@ function App() {
           wallpapers={wallpapers}
           onPreview={setPreviewWallpaper}
         />
+        <Skiper19 />
         <Skiper34 />
         <ExtensionPromo onOpenModal={handleExtensionInstall} />
 

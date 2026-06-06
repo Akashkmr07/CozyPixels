@@ -3,6 +3,8 @@ import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import { fileURLToPath, URL } from 'node:url';
 
+import tailwindcss from '@tailwindcss/vite';
+
 // https://astro.build/config
 export default defineConfig({
   site: 'https://cozy-pixels.vercel.app',
@@ -13,5 +15,7 @@ export default defineConfig({
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },
+
+    plugins: [tailwindcss()],
   },
 });
