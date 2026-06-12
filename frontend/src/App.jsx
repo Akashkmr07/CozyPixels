@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useDeferredValue, useMemo } from 'react';
 import { LazyMotion, domAnimation, m, AnimatePresence } from 'motion/react';
-import { LuGithub, LuSparkles, LuWind, LuRotateCcw, LuChevronRight, LuChevronLeft, LuCopy, LuCheck, LuImage, LuTrees, LuBuilding, LuMoon, LuSun, LuPalette, LuLayoutGrid } from 'react-icons/lu';
+import { LuGithub, LuWind, LuRotateCcw, LuChevronRight, LuChevronLeft, LuCopy, LuCheck, LuImage, LuTrees, LuBuilding, LuMoon, LuSun, LuPalette, LuLayoutGrid, LuDownload, LuSearch } from 'react-icons/lu';
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import SanctuaryMode from './components/forgeui/sanctuary-mode';
@@ -92,7 +92,7 @@ const ExtensionModal = ({ onClose, browser }) => {
 
         <div className="modal-header">
           <div className="modal-icon">
-            <LuSparkles />
+            <LuDownload />
           </div>
           <h3>Activate for {browser.name}</h3>
           <p>Almost there! Just 2 quick steps to activate your sanctuary.</p>
@@ -146,7 +146,7 @@ const Header = ({ totalCount }) => {
   return (
     <header className={`header ${scrolled ? 'scrolled' : ''}`}>
       <div className="container flex items-center justify-between w-full">
-        <span className="logo-text">CozyPixels</span>
+        <a href="/" className="logo-text">CozyPixels</a>
         <div className="header-actions">
           <a href="/about" className="header-link">About Us</a>
           <a href="/faq" className="header-link">FAQ</a>
@@ -357,12 +357,12 @@ const ExtensionPromo = ({ onOpenModal }) => {
           Apps & Extensions
         </m.div>
         <m.h2 className="apple-promo-title" variants={promoItemVariants}>
-          Your screen.<br/>Reimagined.
+          Cozy up your<br/>workspace.
         </m.h2>
         <m.p className="apple-promo-subtitle" variants={promoItemVariants}>
-          Transform your desktop and browser into a serene digital sanctuary with our standalone app and browser extension.
+          Keep the calm aesthetic going. Download our free desktop app and browser extension for a serene environment wherever you work.
         </m.p>
-        <m.div className="apple-promo-actions" variants={promoItemVariants} style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '16px' }}>
+        <m.div className="apple-promo-actions" variants={promoItemVariants}>
           <m.button 
             className="apple-promo-btn" 
             onClick={onOpenModal}
@@ -372,14 +372,28 @@ const ExtensionPromo = ({ onOpenModal }) => {
             Install Extension
           </m.button>
           <m.a 
-            className="apple-promo-btn" 
+            className="apple-promo-btn apple-promo-btn-secondary" 
             href="https://github.com/yadavnikhil03/CozyPixels/releases/latest"
-            style={{ backgroundColor: 'transparent', border: '1px solid rgba(255, 255, 255, 0.5)', color: '#ffffff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
             whileHover={{ scale: 1.05, backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: '#ffffff' }}
             whileTap={{ scale: 0.95 }}
           >
             Download Desktop App
           </m.a>
+        </m.div>
+
+        <m.div className="apple-promo-features" variants={promoItemVariants}>
+          <div className="apple-feature-card">
+            <LuDownload className="feature-icon" />
+            <span>Fast install & startup</span>
+          </div>
+          <div className="apple-feature-card">
+            <LuWind className="feature-icon" />
+            <span>Focused new-tab layout</span>
+          </div>
+          <div className="apple-feature-card">
+            <LuRotateCcw className="feature-icon" />
+            <span>Wallpaper rotation controls</span>
+          </div>
         </m.div>
       </div>
 
@@ -411,8 +425,8 @@ const ExtensionPromo = ({ onOpenModal }) => {
               <p className="new-tab-quote">“Breathe in, breathe out.”</p>
               
               <div className="new-tab-search-mockup">
-                <LuSparkles style={{ fontSize: '13px', opacity: 0.8 }} />
-                <span>Search with Cozy Engine...</span>
+                <LuSearch style={{ fontSize: '13px', opacity: 0.8 }} />
+                <span>Search the web...</span>
               </div>
 
               <div className="new-tab-shortcuts">
@@ -425,26 +439,12 @@ const ExtensionPromo = ({ onOpenModal }) => {
             
             <div className="new-tab-footer">
               <span className="new-tab-credit">wallpaper: {currentWallpaper.name}</span>
-              <span className="new-tab-brand">Cozy Engine v1.2</span>
+              <span className="new-tab-brand">crafted with care</span>
             </div>
           </div>
         </div>
       </m.div>
 
-      <m.div className="apple-promo-features" variants={promoItemVariants}>
-        <div className="apple-feature-card">
-          <LuSparkles className="feature-icon" />
-          <span>Fast install & startup</span>
-        </div>
-        <div className="apple-feature-card">
-          <LuWind className="feature-icon" />
-          <span>Focused new-tab layout</span>
-        </div>
-        <div className="apple-feature-card">
-          <LuRotateCcw className="feature-icon" />
-          <span>Wallpaper rotation controls</span>
-        </div>
-      </m.div>
     </div>
   </m.section>
   );
@@ -524,7 +524,7 @@ const HorizontalShowcase = ({ wallpapers = EMPTY_WALLPAPERS, onPreview }) => {
                   animate={{
                     clipPath:
                       current !== index
-                        ? "inset(12% 0 12% 0 round 24px)"
+                        ? "inset(6% 0 6% 0 round 24px)"
                         : "inset(0% 0 0% 0 round 24px)",
                   }}
                   transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -710,7 +710,7 @@ const Lightbox = ({ wallpaper, onClose, onSanctuary, onShowToast }) => {
             onClick={() => onSanctuary(wallpaper)}
             title="Enter Focus Sanctuary"
           >
-            <LuSparkles />
+            <LuWind />
             Sanctuary
           </button>
         </div>
@@ -731,7 +731,7 @@ const scrollUp = () => {
 const Footer = () => (
   <footer className="site-footer">
     <div className="footer-brand">
-      <span className="logo-text" style={{ fontSize: '2rem' }}>CozyPixels</span>
+      <a href="/" className="logo-text" style={{ fontSize: '2rem' }}>CozyPixels</a>
       <p className="footer-tagline">
         Curating the most serene 4K wallpapers for your aesthetic workspace.
       </p>

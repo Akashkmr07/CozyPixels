@@ -1,20 +1,15 @@
-import React, { useRef } from "react";
-import { m, useScroll, useTransform } from "motion/react";
+import React from "react";
+import { m } from "motion/react";
 
 const Skiper19 = () => {
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "end start"]
-  });
-
   return (
-    <section ref={ref} className="skiper19-section">
+    <section className="skiper19-section">
       <div className="skiper19-header">
         <m.span 
           className="skiper19-eyebrow"
           initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 0.7, y: 0 }}
+          whileInView={{ opacity: 0.7, y: 0 }}
+          viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
           Interactive Sanctuary
@@ -22,7 +17,8 @@ const Skiper19 = () => {
         <m.h2 
           className="skiper19-title"
           initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.1 }}
         >
           Pixels Crafted <br /> With Serene <br /> Comfort
@@ -30,73 +26,63 @@ const Skiper19 = () => {
         <m.p 
           className="skiper19-desc"
           initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 0.8, y: 0 }}
+          whileInView={{ opacity: 0.8, y: 0 }}
+          viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.25 }}
         >
-          Explore our curated palettes and minimalist wallpapers designed for focused and peaceful workspaces. Scroll down to see the path unfold.
+          Explore our curated palettes and minimalist wallpapers designed for focused and peaceful workspaces.
         </m.p>
-
-        <LinePath
-          className="skiper19-line"
-          scrollYProgress={scrollYProgress}
-        />
       </div>
 
-      <div className="skiper19-bottom-card">
-        <h3 className="skiper19-bottom-title">
-          cozy.pixels
-        </h3>
-        <div className="skiper19-bottom-info">
-          <div className="skiper19-info-col">
-            <p className="skiper19-info-label">Color Themes</p>
-            <p className="skiper19-info-val">Catppuccin & Nord</p>
-            <p className="skiper19-info-label" style={{ marginTop: '16px' }}>Curator</p>
-            <p className="skiper19-info-val">@yadavnikhil03</p>
+      <div className="skiper19-bento-container">
+        <m.div 
+          className="skiper19-bento-grid"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+        >
+          <div className="bento-card bento-themes">
+            <div className="bento-icon">🎨</div>
+            <p className="bento-label">Color Themes</p>
+            <h3 className="bento-value">Catppuccin & Nord</h3>
+            <div className="bento-themes-preview">
+              <div className="theme-dot catppuccin-1"></div>
+              <div className="theme-dot catppuccin-2"></div>
+              <div className="theme-dot catppuccin-3"></div>
+              <div className="theme-dot catppuccin-4"></div>
+              <div className="theme-divider"></div>
+              <div className="theme-dot nord-1"></div>
+              <div className="theme-dot nord-2"></div>
+              <div className="theme-dot nord-3"></div>
+              <div className="theme-dot nord-4"></div>
+            </div>
           </div>
-          <div className="skiper19-info-col">
-            <p className="skiper19-info-label">Vibe</p>
-            <p className="skiper19-info-val">Minimalist Focus & Serene Aesthetics</p>
-            <p className="skiper19-info-label" style={{ marginTop: '16px' }}>License</p>
-            <p className="skiper19-info-val">Open Source & Free</p>
+          
+          <div className="bento-card bento-vibe">
+            <div className="bento-icon">🌿</div>
+            <p className="bento-label">Vibe</p>
+            <h3 className="bento-value">Minimalist Focus<br/>& Serene Aesthetics</h3>
           </div>
-        </div>
+
+          <div className="bento-card bento-curator">
+            <img src="/ay.jpg" alt="Ayanokoji" className="bento-avatar" />
+            <div className="bento-curator-info">
+              <p className="bento-label">Curator</p>
+              <h3 className="bento-value">@yadavnikhil03</h3>
+            </div>
+          </div>
+          
+          <div className="bento-card bento-license">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '24px', color: '#39406d' }}>
+              <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+            <p className="bento-label">MIT License</p>
+            <h3 className="bento-value">Open Source & Free</h3>
+          </div>
+        </m.div>
       </div>
     </section>
-  );
-};
-
-const LinePath = ({ className, scrollYProgress }) => {
-  
-  const pathLength = useTransform(scrollYProgress, [0, 0.7], [0, 1]);
-
-  return (
-    <svg
-      width="1278"
-      height="2319"
-      viewBox="0 0 1278 2319"
-      fill="none"
-      overflow="visible"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <defs>
-        <linearGradient id="stroke-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="var(--color-primary, #505b93)" />
-          <stop offset="50%" stopColor="var(--color-primary-container, #b4befe)" />
-          <stop offset="100%" stopColor="#ffe8f0" />
-        </linearGradient>
-      </defs>
-      <m.path
-        d="M876.605 394.131C788.982 335.917 696.198 358.139 691.836 416.303C685.453 501.424 853.722 498.43 941.95 409.714C1016.1 335.156 1008.64 186.907 906.167 142.846C807.014 100.212 712.699 198.494 789.049 245.127C889.053 306.207 986.062 116.979 840.548 43.3233C743.932 -5.58141 678.027 57.1682 672.279 112.188C666.53 167.208 712.538 172.943 736.353 163.088C760.167 153.234 764.14 120.924 746.651 93.3868C717.461 47.4252 638.894 77.8642 601.018 116.979C568.164 150.908 557 201.079 576.467 246.924C593.342 286.664 630.24 310.55 671.68 302.614C756.114 286.446 729.747 206.546 681.86 186.442C630.54 164.898 492 209.318 495.026 287.644C496.837 334.494 518.402 366.466 582.455 367.287C680.013 368.538 771.538 299.456 898.634 292.434C1007.02 286.446 1192.67 309.384 1242.36 382.258C1266.99 418.39 1273.65 443.108 1247.75 474.477C1217.32 511.33 1149.4 511.259 1096.84 466.093C1044.29 420.928 1029.14 380.576 1033.97 324.172C1038.31 273.428 1069.55 228.986 1117.2 216.384C1152.2 207.128 1188.29 213.629 1194.45 245.127C1201.49 281.062 1132.22 280.104 1100.44 272.673C1065.32 264.464 1044.22 234.837 1032.77 201.413C1019.29 162.061 1029.71 131.126 1056.44 100.965C1086.19 67.4032 1143.96 54.5526 1175.78 86.1513C1207.02 117.17 1186.81 143.379 1156.22 166.691C1112.57 199.959 1052.57 186.238 999.784 155.164C957.312 130.164 899.171 63.7054 931.284 26.3214C952.068 2.12513 996.288 3.87363 1007.22 43.58C1018.15 83.2749 1003.56 122.644 975.969 163.376C948.377 204.107 907.272 255.122 913.558 321.045C919.727 385.734 990.968 497.068 1063.84 503.35C1111.46 507.456 1166.79 511.984 1175.68 464.527C1191.52 379.956 1101.26 334.985 1030.29 377.017C971.109 412.064 956.297 483.647 953.797 561.655C947.587 755.413 1197.56 941.828 936.039 1140.66C745.771 1285.32 321.926 950.737 134.536 1202.19C-6.68295 1391.68 -53.4837 1655.38 131.935 1760.5C478.381 1956.91 1124.19 1515 1201.28 1997.83C1273.66 2451.23 100.805 1864.7 303.794 2668.89"
-        stroke="url(#stroke-grad)"
-        strokeWidth="50"
-        strokeLinecap="round"
-        style={{
-          pathLength,
-          strokeDashoffset: useTransform(pathLength, (value) => 1 - value),
-        }}
-      />
-    </svg>
   );
 };
 
