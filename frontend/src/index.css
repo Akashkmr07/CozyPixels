@@ -3036,9 +3036,46 @@ html {
     height: 60px;
   }
 
+  .header-actions {
+    gap: 6px;
+  }
+
+  .header-link {
+    padding: 8px 12px;
+    font-size: 11px;
+    white-space: nowrap;
+    min-height: 40px; 
+  }
+
+  .wallpaper-count-header {
+    display: none; 
+  }
+
+  .logo-text {
+    font-size: 20px;
+  }
+
   .hero {
     padding-top: 60px;
     padding-bottom: 48px;
+  }
+
+  .lightbox-footer {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .lightbox-info {
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 4px;
+  }
+
+  .lightbox-download, .lightbox-sanctuary-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 12px 12px;
   }
 
   .hero-wrapper {

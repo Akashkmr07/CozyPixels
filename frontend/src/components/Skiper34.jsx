@@ -6,7 +6,7 @@ import {
   useTransform,
 } from "motion/react";
 import ReactLenis from "lenis/react";
-import { useRef } from "react";
+import React, { useRef } from "react";
 import { LuChevronRight } from "react-icons/lu";
 
 const STATIC_URL = import.meta.env.PROD ? 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public' : '';
