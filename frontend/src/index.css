@@ -4131,6 +4131,26 @@ h1, h2, h3, .font-display {
 .bento-curator { grid-column: span 1; }
 .bento-license { grid-column: span 1; }
 
+@media (max-width: 900px) {
+  .skiper19-bento-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .bento-themes { grid-column: span 2; }
+  .bento-vibe { grid-column: span 2; }
+  .bento-curator { grid-column: span 1; }
+  .bento-license { grid-column: span 1; }
+}
+
+@media (max-width: 600px) {
+  .skiper19-bento-grid {
+    grid-template-columns: 1fr;
+  }
+  .bento-themes { grid-column: span 1; }
+  .bento-vibe { grid-column: span 1; }
+  .bento-curator { grid-column: span 1; }
+  .bento-license { grid-column: span 1; }
+}
+
 .bento-icon {
   font-size: 24px;
   margin-bottom: 24px;
