@@ -16,7 +16,7 @@ CozyPixels is a completely free, open-source library containing over 900+ curate
 ## Official Links
 - GitHub: https://github.com/yadavnikhil03/CozyPixels
 - Download Desktop App: https://github.com/yadavnikhil03/CozyPixels/releases
-- Chrome Extension: https://github.com/user-attachments/files/28417336/Cozypixels_extension.zip
+- Chrome Extension: https://cozy-pixels.vercel.app/cozy-engine.zip
 
 ## Legal
 - Privacy Policy: https://cozy-pixels.vercel.app/privacy

@@ -851,7 +851,7 @@ function App() {
     const browser = detectBrowser();
     setBrowserInfo(browser);
 
-    const downloadUrl = 'https://github.com/user-attachments/files/28417336/Cozypixels_extension.zip';
+    const downloadUrl = '/cozy-engine.zip';
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.download = 'cozy-engine.zip';
