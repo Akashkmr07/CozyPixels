@@ -10,7 +10,7 @@
     <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
     <title>CozyPixels by Nikhil | Official 4K Wallpapers & App</title>
     <meta name="title" content="CozyPixels Official | Nikhil Wallpapers & App" />
-    <meta name="description" content="The definitive and official CozyPixels application inspired by Nikhil. Browse 900+ free minimalist 4K wallpapers in Catppuccin, Nord, and One Dark themes. Download our native Desktop App and Chrome Extension." />
+    <meta name="description" content="Official CozyPixels: Browse 900+ free minimalist 4K wallpapers in Catppuccin, Nord, and One Dark. Download the native Desktop App and Chrome Extension." />
     <meta name="keywords" content="cozypixels, nikhil, nikhil cozy pixels, official cozypixels, cozy pixels app, free 4k wallpapers, minimalist wallpapers, catppuccin wallpaper, nord wallpaper, one dark wallpaper, desktop app, chrome extension" />
     <meta name="author" content="Nikhil Yadav (@yadavnikhil03)" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
@@ -39,24 +39,55 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "CozyPixels",
-      "alternateName": ["Cozy Pixels Wallpapers", "Official CozyPixels"],
-      "url": "https://cozy-pixels.vercel.app/",
-      "description": "The official home of CozyPixels. A curated collection of 900+ free minimalist and aesthetic 4K wallpapers for desktop and mobile, along with a dedicated Desktop App and Chrome Extension.",
-      "author": {
-        "@type": "Person",
-        "name": "Nikhil Yadav",
-        "sameAs": "https://github.com/yadavnikhil03"
-      },
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "https://cozy-pixels.vercel.app/?q={search_term_string}"
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://cozy-pixels.vercel.app/#organization",
+          "name": "CozyPixels",
+          "url": "https://cozy-pixels.vercel.app/",
+          "logo": {
+            "@type": "ImageObject",
+            "@id": "https://cozy-pixels.vercel.app/#logo",
+            "url": "https://cozy-pixels.vercel.app/favicon.svg",
+            "caption": "CozyPixels Logo"
+          },
+          "sameAs": [
+            "https://github.com/yadavnikhil03/CozyPixels"
+          ]
         },
-        "query-input": "required name=search_term_string"
-      }
+        {
+          "@type": "Person",
+          "@id": "https://cozy-pixels.vercel.app/#person",
+          "name": "Nikhil Yadav",
+          "url": "https://github.com/yadavnikhil03",
+          "sameAs": [
+            "https://github.com/yadavnikhil03"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://cozy-pixels.vercel.app/#website",
+          "url": "https://cozy-pixels.vercel.app/",
+          "name": "CozyPixels",
+          "description": "Curated collection of 900+ free minimalist and aesthetic 4K wallpapers for desktop and mobile, along with a dedicated Desktop App and Chrome Extension.",
+          "publisher": {
+            "@id": "https://cozy-pixels.vercel.app/#organization"
+          },
+          "author": {
+            "@id": "https://cozy-pixels.vercel.app/#person"
+          },
+          "potentialAction": [
+            {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://cozy-pixels.vercel.app/?q={search_term_string}"
+              },
+              "query-input": "required name=search_term_string"
+            }
+          ]
+        }
+      ]
     }
     </script>
 

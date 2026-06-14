@@ -6,7 +6,7 @@ export interface Props {
 
 const { 
   title = "CozyPixels by Nikhil | Official 4K Wallpapers & App",
-  description = "The definitive and official CozyPixels application inspired by Nikhil. Browse 900+ free minimalist 4K wallpapers in Catppuccin, Nord, and One Dark themes. Download our native Desktop App and Chrome Extension."
+  description = "Official CozyPixels: Browse 900+ free minimalist 4K wallpapers in Catppuccin, Nord, and One Dark. Download the native Desktop App and Chrome Extension."
 } = Astro.props;
 ---
 
@@ -41,6 +41,61 @@ const {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <meta name="theme-color" content="#505b93" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://cozy-pixels.vercel.app/#organization",
+          "name": "CozyPixels",
+          "url": "https://cozy-pixels.vercel.app/",
+          "logo": {
+            "@type": "ImageObject",
+            "@id": "https://cozy-pixels.vercel.app/#logo",
+            "url": "https://cozy-pixels.vercel.app/favicon.svg",
+            "caption": "CozyPixels Logo"
+          },
+          "sameAs": [
+            "https://github.com/yadavnikhil03/CozyPixels"
+          ]
+        },
+        {
+          "@type": "Person",
+          "@id": "https://cozy-pixels.vercel.app/#person",
+          "name": "Nikhil Yadav",
+          "url": "https://github.com/yadavnikhil03",
+          "sameAs": [
+            "https://github.com/yadavnikhil03"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://cozy-pixels.vercel.app/#website",
+          "url": "https://cozy-pixels.vercel.app/",
+          "name": "CozyPixels",
+          "description": "Curated collection of 900+ free minimalist and aesthetic 4K wallpapers for desktop and mobile, along with a dedicated Desktop App and Chrome Extension.",
+          "publisher": {
+            "@id": "https://cozy-pixels.vercel.app/#organization"
+          },
+          "author": {
+            "@id": "https://cozy-pixels.vercel.app/#person"
+          },
+          "potentialAction": [
+            {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://cozy-pixels.vercel.app/?q={search_term_string}"
+              },
+              "query-input": "required name=search_term_string"
+            }
+          ]
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <slot />
