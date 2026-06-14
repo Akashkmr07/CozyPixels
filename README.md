@@ -52,6 +52,29 @@ We feature wallpapers based on popular developer themes:
 
 ---
 
+## Contributing 🚀
+
+We welcome contributions of all kinds! Whether you are fixing a bug, adding new wallpapers, improving the desktop app, or making the extension cooler, your help is highly appreciated.
+
+### How to Contribute:
+1. **Fork the Repository**: Click the **Fork** button at the top right of this page.
+2. **Add Wallpapers**:
+   * Place your high-res wallpapers inside the correct subfolder in `frontend/public/` (e.g. `Catppuccin`, `Nord`, or `One Dark`).
+   * Run the indexer script to auto-generate the catalog:
+     ```bash
+     cd backend
+     node generate.js
+     node generate-sitemap.js
+     ```
+3. **Desktop & Extension Enhancements**:
+   * Navigate to `/desktop` or `/extension` folders.
+   * Follow the existing coding style and test your changes locally.
+4. **Submit a Pull Request (PR)**: Create a branch, commit your changes, push to your fork, and submit a PR to `main`!
+
+Feel free to check out the open issues or create a new one to start discussing features!
+
+---
+
 ## Acknowledgements & Credits
 
 This project was heavily inspired by and built around the incredible original wallpaper collection curated by **[SleepyCatHey](https://github.com/SleepyCatHey)**. 
