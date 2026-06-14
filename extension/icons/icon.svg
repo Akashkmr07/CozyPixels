@@ -1,31 +1,138 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="icon-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#505b93;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#b4befe;stop-opacity:1" />
+    <!-- Rich cozy night gradient -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e142a;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#35204c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4a2b66;stop-opacity:1" />
     </linearGradient>
+
+    <!-- Glowing gold gradient for moon & stars -->
+    <linearGradient id="gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fffbee;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ffd670;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fca311;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Orange cat body gradient -->
+    <linearGradient id="cat-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffad60;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e07a2c;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Star/Moon glow -->
+    <filter id="cozy-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Drop shadow for the cat and moon -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="2.5" flood-color="#0e0717" flood-opacity="0.4" />
+    </filter>
   </defs>
-  
-  <!-- Background Squircle -->
-  <rect width="128" height="128" rx="36" fill="url(#icon-grad)"/>
-  
-  <!-- Stylized Pixel "Zen" Symbol -->
-  <g fill="white">
-    <!-- Top -->
-    <rect x="56" y="32" width="16" height="16" rx="4" opacity="0.9" />
-    <!-- Center -->
-    <rect x="56" y="56" width="16" height="16" rx="6" />
-    <!-- Bottom -->
-    <rect x="56" y="80" width="16" height="16" rx="4" opacity="0.9" />
-    <!-- Left -->
-    <rect x="32" y="56" width="16" height="16" rx="4" opacity="0.7" />
-    <!-- Right -->
-    <rect x="80" y="56" width="16" height="16" rx="4" opacity="0.7" />
+
+  <!-- Background squircle -->
+  <rect width="128" height="128" rx="36" fill="url(#bg-grad)" />
+
+  <!-- Cozy Grid Lines (subtle digital sanctuary touch) -->
+  <g opacity="0.03" stroke="#ffffff" stroke-width="1.2">
+    <line x1="20" y1="0" x2="20" y2="128" />
+    <line x1="40" y1="0" x2="40" y2="128" />
+    <line x1="60" y1="0" x2="60" y2="128" />
+    <line x1="80" y1="0" x2="80" y2="128" />
+    <line x1="100" y1="0" x2="100" y2="128" />
+    <line x1="0" y1="20" x2="128" y2="20" />
+    <line x1="0" y1="40" x2="128" y2="40" />
+    <line x1="0" y1="60" x2="128" y2="60" />
+    <line x1="0" y1="80" x2="128" y2="80" />
+    <line x1="0" y1="100" x2="128" y2="100" />
+  </g>
+
+  <!-- Star sparkles (glow layer) -->
+  <g fill="#ffeecc" filter="url(#cozy-glow)">
+    <path d="M 36 28 Q 36 31 39 31 Q 36 31 36 34 Q 36 31 33 31 Q 36 31 36 28" />
+    <path d="M 98 40 Q 98 43 101 43 Q 98 43 98 46 Q 98 43 95 43 Q 98 43 98 40" />
+    <path d="M 88 18 Q 88 20 90 20 Q 88 20 88 22 Q 88 20 86 20 Q 88 20 88 18" opacity="0.7" />
+    <path d="M 24 84 Q 24 86 26 86 Q 24 86 24 88 Q 24 86 22 86 Q 24 86 24 84" opacity="0.6" />
+    <!-- Glowing circular background light behind the moon -->
+    <circle cx="64" cy="64" r="38" fill="#ffeebb" opacity="0.06" filter="url(#cozy-glow)" />
+  </g>
+
+  <!-- Crescent Moon and Curled Sleeping Cat (with shadow) -->
+  <g filter="url(#shadow)">
     
-    <!-- Inner Sparkles -->
-    <rect x="42" y="42" width="8" height="8" rx="2" opacity="0.5" />
-    <rect x="78" y="42" width="8" height="8" rx="2" opacity="0.5" />
-    <rect x="42" y="78" width="8" height="8" rx="2" opacity="0.5" />
-    <rect x="78" y="78" width="8" height="8" rx="2" opacity="0.5" />
+    <!-- Golden Crescent Moon -->
+    <g fill="url(#gold-grad)">
+      <mask id="moon-mask">
+        <rect width="128" height="128" fill="#ffffff" />
+        <!-- Shifted circle to cut out crescent -->
+        <circle cx="82" cy="52" r="44" fill="#000000" />
+      </mask>
+      <circle cx="64" cy="64" r="44" mask="url(#moon-mask)" />
+    </g>
+
+    <!-- Cozy Steaming Coffee Mug -->
+    <g transform="translate(26, 76)">
+      <!-- Steam (semi-transparent) -->
+      <path d="M 6 -4 Q 8 -10 6 -14 M 11 -4 Q 13 -10 11 -14" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.5" />
+      <!-- Mug body outline -->
+      <rect x="2" y="-2" width="14" height="14" rx="2" fill="#50382d" stroke="#1c0f0b" stroke-width="1.5" />
+      <!-- Handle -->
+      <path d="M 2 2 L -2 2 L -2 8 L 2 8" fill="none" stroke="#1c0f0b" stroke-width="1.8" stroke-linejoin="round" />
+      <path d="M 2 2 L -2 2 L -2 8 L 2 8" fill="none" stroke="#50382d" stroke-width="0.8" stroke-linejoin="round" />
+      <!-- Coffee inside (rim) -->
+      <line x1="3.5" y1="-0.5" x2="14.5" y2="-0.5" stroke="#ffe5b4" stroke-width="1" />
+    </g>
+
+    <!-- Curled Up Sleeping Cat -->
+    <g transform="translate(48, 54)">
+      <!-- Cat Tail (wrapped around) -->
+      <path d="M 32 30 C 42 28, 44 14, 34 12 C 28 10, 24 16, 26 22" fill="none" stroke="#1c0f0b" stroke-width="6.5" stroke-linecap="round" />
+      <path d="M 32 30 C 42 28, 44 14, 34 12 C 28 10, 24 16, 26 22" fill="none" stroke="url(#cat-grad)" stroke-width="4.5" stroke-linecap="round" />
+      <path d="M 34 12 C 30 11, 27 15, 27 20" fill="none" stroke="#ffc085" stroke-width="1.5" stroke-linecap="round" opacity="0.4" /> <!-- Tail Tip highlight -->
+
+      <!-- Cat Body -->
+      <ellipse cx="22" cy="24" rx="19" ry="14" fill="url(#cat-grad)" stroke="#1c0f0b" stroke-width="1.8" />
+      
+      <!-- Back Stripes -->
+      <path d="M 26 11 Q 24 16 28 20" fill="none" stroke="#b25310" stroke-width="1.8" stroke-linecap="round" />
+      <path d="M 32 14 Q 30 20 33 23" fill="none" stroke="#b25310" stroke-width="1.8" stroke-linecap="round" />
+      <path d="M 20 11 Q 19 15 21 19" fill="none" stroke="#b25310" stroke-width="1.5" stroke-linecap="round" />
+
+      <!-- Cat Head -->
+      <circle cx="10" cy="18" r="10" fill="url(#cat-grad)" stroke="#1c0f0b" stroke-width="1.8" />
+      
+      <!-- Ears -->
+      <!-- Left Ear -->
+      <path d="M 3 11 L 1 3 L 8 9 Z" fill="url(#cat-grad)" stroke="#1c0f0b" stroke-width="1.8" stroke-linejoin="round" />
+      <path d="M 3.5 10 L 2.5 5 L 7 8.5 Z" fill="#ffb4a2" />
+      <!-- Right Ear -->
+      <path d="M 12 9 L 17 3 L 17 11 Z" fill="url(#cat-grad)" stroke="#1c0f0b" stroke-width="1.8" stroke-linejoin="round" />
+      <path d="M 12.5 10 L 15.5 5 L 16 9.5 Z" fill="#ffb4a2" />
+
+      <!-- Sleeping Eyes (closed curves) -->
+      <path d="M 2 18 Q 4 21 6 18" fill="none" stroke="#5c2604" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M 10 18 Q 12 21 14 18" fill="none" stroke="#5c2604" stroke-width="1.5" stroke-linecap="round" />
+      <!-- Nose & mouth -->
+      <path d="M 8 20 L 8 21.5 M 6.5 22.5 Q 8 21.5 9.5 22.5" fill="none" stroke="#5c2604" stroke-width="1.2" stroke-linecap="round" />
+
+      <!-- Soft Rosy Cheeks -->
+      <circle cx="2" cy="20.5" r="1.5" fill="#ffa5a5" opacity="0.7" />
+      <circle cx="15" cy="20.5" r="1.5" fill="#ffa5a5" opacity="0.7" />
+    </g>
+
+    <!-- Zen Garden Sprout (growing next to the cat) -->
+    <g transform="translate(84, 72)">
+      <!-- Stem -->
+      <path d="M 0 16 Q 2 6 6 0" fill="none" stroke="#604335" stroke-width="2.5" stroke-linecap="round" />
+      <path d="M 0 16 Q 2 6 6 0" fill="none" stroke="#75be2f" stroke-width="1.2" stroke-linecap="round" />
+      <!-- Left Leaf -->
+      <path d="M 3 7 C 0 5, -2 1, 2 0 C 4 0, 5 3, 3 7 Z" fill="#8cd83d" stroke="#1c0f0b" stroke-width="1" />
+      <!-- Top Right Leaf -->
+      <path d="M 6 0 C 8 -3, 12 -2, 11 2 C 10 4, 8 3, 6 0 Z" fill="#a4ec53" stroke="#1c0f0b" stroke-width="1" />
+      <!-- Sparkle on Sprout -->
+      <circle cx="9" cy="-2" r="1" fill="#ffffff" filter="url(#cozy-glow)" />
+    </g>
   </g>
 </svg>

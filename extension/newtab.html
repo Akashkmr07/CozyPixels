@@ -1,22 +1,260 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>New Sanctuary</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cozy Sanctuary</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="newtab.css">
 </head>
 <body>
+  <!-- Zen Mode Indicator -->
+  <div id="zen-indicator">Zen Mode Active. Press Esc or Double-Click to exit.</div>
+
+  <!-- Full screen background image -->
   <div id="sanctuary-bg"></div>
+  
+  <!-- Configurable overlay dimmer -->
+  <div id="bg-dimmer-overlay"></div>
+
+  <!-- Primary Centered Interface -->
   <div class="overlay">
-    <div id="clock">00:00</div>
-    <div id="greeting">Breathe in, breathe out.</div>
+    <div class="center-content">
+      <!-- Clock Widget -->
+      <div id="clock-widget" class="widget-fade">
+        <div id="clock">00:00</div>
+        <span id="clock-ampm"></span>
+      </div>
+      
+      <!-- Greeting Widget -->
+      <div id="greeting-widget" class="widget-fade">
+        <div id="greeting">Breathe in, breathe out.</div>
+        <div id="quote-container" class="quote-card">
+          <span id="quote-text">"Take a deep breath. You are doing enough."</span>
+          <span id="quote-author">— Calming Thought</span>
+        </div>
+      </div>
+
+      <!-- Google Search Widget -->
+      <div id="search-widget" class="widget-fade">
+        <form id="search-form" action="https://www.google.com/search" method="get">
+          <div class="search-bar-container">
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" name="q" id="search-input" placeholder="Search the web..." autocomplete="off" required>
+          </div>
+        </form>
+      </div>
+
+      <!-- Daily Focus Goal Widget -->
+      <div id="focus-widget" class="widget-fade">
+        <div id="focus-prompt">What is your focus for today?</div>
+        <div id="focus-setup-container">
+          <input type="text" id="focus-input" placeholder="Enter your daily goal..." autocomplete="off">
+        </div>
+        <div id="focus-display-container" style="display: none;">
+          <label class="focus-checkbox-label">
+            <input type="checkbox" id="focus-checkbox">
+            <span class="custom-checkbox"></span>
+            <span id="focus-text">My focus item</span>
+          </label>
+          <button id="focus-clear-btn" title="Clear Goal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="footer">
-    <span id="wallpaper-name">...</span>
-    <span class="logo">Cozy Engine</span>
+
+  <!-- Bottom-Left Wallpaper Info & Actions -->
+  <div class="bottom-left-panel">
+    <div class="vibe-card">
+      <div class="vibe-text-group">
+        <span class="vibe-label">CURRENT VIBE</span>
+        <h3 id="wallpaper-name">Cozy Sanctuary</h3>
+      </div>
+      <div class="vibe-actions">
+        <!-- Next random vibe button -->
+        <button id="next-vibe-btn" class="icon-btn-accent" title="Next Random Vibe">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        </button>
+        <!-- Favorite toggle button -->
+        <button id="favorite-vibe-btn" class="icon-btn-accent" title="Favorite Vibe">
+          <svg class="heart-outline" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <svg class="heart-filled" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+        </button>
+        <!-- Download wallpaper button -->
+        <button id="download-vibe-btn" class="icon-btn-accent" title="Download Wallpaper">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        </button>
+      </div>
+    </div>
   </div>
+
+  <!-- Bottom-Right Floating Controls (Soundscapes & Settings) -->
+  <div class="bottom-right-panel">
+    <!-- Soundscapes controls -->
+    <div id="soundscape-widget" class="soundscape-container">
+      <button id="soundscape-toggle-btn" class="floating-trigger" title="Ambient Soundscapes">
+        <svg class="icon-speaker" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        <svg class="icon-mute" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+      </button>
+      
+      <!-- Popover menu for soundscape selections -->
+      <div id="soundscape-popover" class="glass-panel popover">
+        <h4>Soundscapes</h4>
+        <div class="soundscape-option" data-sound="rain">
+          <span>Rainfall</span>
+          <button class="sound-play-btn">Play</button>
+        </div>
+        <div class="soundscape-option" data-sound="fire">
+          <span>Fireplace</span>
+          <button class="sound-play-btn">Play</button>
+        </div>
+        <div class="soundscape-option" data-sound="waves">
+          <span>Ocean Waves</span>
+          <button class="sound-play-btn">Play</button>
+        </div>
+        <div class="soundscape-option" data-sound="brown">
+          <span>Deep Focus (Brown)</span>
+          <button class="sound-play-btn">Play</button>
+        </div>
+        <div class="soundscape-volume-container">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <input type="range" id="soundscape-volume" min="0" max="1" step="0.05" value="0.5">
+        </div>
+      </div>
+    </div>
+
+    <!-- Zen Garden widget -->
+    <div id="zen-garden-widget" class="soundscape-container">
+      <button id="zen-garden-toggle-btn" class="floating-trigger" title="Zen Garden">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12M12 12c-4 0-6-3-6-6M12 12c4 0 6-3 6-6M12 17c-2 0-3-2-3-4M12 17c2 0 3-2 3-4"/></svg>
+      </button>
+      
+      <!-- Popover menu for Zen Garden -->
+      <div id="zen-garden-popover" class="glass-panel popover">
+        <div class="zen-garden-header">
+          <h4>Zen Garden</h4>
+          <span id="plant-stage-label" class="stage-badge">Sprout</span>
+        </div>
+        
+        <div class="plant-display" id="plant-svg-container"></div>
+        
+        <div class="zen-garden-status">
+          <div class="progress-bar-label">
+            <span>Growth</span>
+            <span id="plant-growth-percent">0%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="plant-progress-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+        
+        <div class="zen-garden-actions">
+          <button id="water-plant-btn" class="btn btn-water" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-4.3-7-11-7-11S5 10.7 5 15a7 7 0 0 0 7 7z"/></svg>
+            <span>Water (+5)</span>
+          </button>
+          <span id="water-cooldown-label">Ready</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Settings Button -->
+    <button id="settings-toggle-btn" class="floating-trigger" title="Sanctuary Settings">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
+
+  <!-- Settings Slide-out Drawer -->
+  <div id="settings-drawer" class="glass-panel drawer">
+    <div class="drawer-header">
+      <h3>Settings</h3>
+      <button id="drawer-close-btn" class="icon-btn" title="Close Panel">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    
+    <div class="drawer-body">
+      <!-- General Personalization Section -->
+      <div class="settings-section">
+        <h4>Personalization</h4>
+        <div class="setting-item">
+          <label for="settings-username">Your Name</label>
+          <input type="text" id="settings-username" placeholder="What should we call you?" autocomplete="off">
+        </div>
+      </div>
+
+      <!-- Display & Widgets Customization -->
+      <div class="settings-section">
+        <h4>Widgets Display</h4>
+        <div class="setting-item-toggle">
+          <span>Show Clock</span>
+          <label class="switch">
+            <input type="checkbox" id="toggle-clock" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item-toggle" id="clock-format-row">
+          <span>12-Hour Clock Format</span>
+          <label class="switch">
+            <input type="checkbox" id="toggle-12h" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item-toggle">
+          <span>Show Greeting</span>
+          <label class="switch">
+            <input type="checkbox" id="toggle-greeting" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item-toggle">
+          <span>Show Daily Focus Goal</span>
+          <label class="switch">
+            <input type="checkbox" id="toggle-focus" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item-toggle">
+          <span>Show Search Bar</span>
+          <label class="switch">
+            <input type="checkbox" id="toggle-search" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Background Visuals -->
+      <div class="settings-section">
+        <h4>Sanctuary Ambience</h4>
+        <div class="setting-item">
+          <div class="slider-label-group">
+            <label for="dimmer-slider">Background Dimmer</label>
+            <span id="dimmer-value">20%</span>
+          </div>
+          <input type="range" id="dimmer-slider" min="0" max="80" step="5" value="20">
+        </div>
+        <div class="setting-item-toggle">
+          <span>Cycle Favorites Only</span>
+          <label class="switch">
+            <input type="checkbox" id="toggle-cycle-favorites">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+
+      <!-- Links & Info -->
+      <div class="settings-footer-info">
+        <a href="https://cozy-pixels.vercel.app" target="_blank" class="accent-link">Visit Cozy Sanctuary Website</a>
+        <div class="drawer-version">Cozy Engine v1.2.2</div>
+      </div>
+    </div>
+  </div>
+
   <script src="newtab.js"></script>
 </body>
 </html>

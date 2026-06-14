@@ -1,14 +1,39 @@
+/* Design System & CSS Variables */
+:root {
+  --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-warm-white: #fffcf8;
+  --color-cream: #fffaf0;
+  --color-chocolate: #2d2424;
+  --color-emerald: #50b386;
+  --color-emerald-hover: #409b72;
+  --color-accent-blue: #7ca8e6;
+  
+  /* Glassmorphic settings */
+  --glass-bg: rgba(20, 18, 18, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3);
+  --glass-blur: blur(16px) saturate(120%);
+  
+  --light-glass-bg: rgba(255, 255, 255, 0.08);
+  --light-glass-border: rgba(255, 255, 255, 0.12);
+  --light-glass-hover: rgba(255, 255, 255, 0.15);
+}
+
+/* Global resets */
 body, html {
   margin: 0;
   padding: 0;
   height: 100%;
   width: 100%;
   overflow: hidden;
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: white;
-  background: #1e1c0a;
+  font-family: var(--font-main);
+  color: var(--color-warm-white);
+  background: #12100e;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* 1. Backgrounds & Dimmer */
 #sanctuary-bg {
   position: absolute;
   inset: 0;
@@ -17,60 +42,1042 @@ body, html {
   background-repeat: no-repeat;
   z-index: 0;
   opacity: 0;
-  transition: opacity 0.8s ease-out;
-  background-color: #1e1c0a;
+  transition: opacity 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+  background-color: #12100e;
 }
 
 #sanctuary-bg::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.4) 100%);
+  background: radial-gradient(circle at center, transparent 20%, rgba(0, 0, 0, 0.3) 100%);
   pointer-events: none;
 }
 
+#bg-dimmer-overlay {
+  position: absolute;
+  inset: 0;
+  background: #000000;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.20; /* Default dimmer setting (20%) */
+  transition: opacity 0.3s ease;
+}
+
+/* 2. Main Layout Overlay */
 .overlay {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.center-content {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 22px;
+  max-width: 600px;
+  width: 90%;
+  pointer-events: auto;
+}
+
+/* Fade animation for widgets load */
+.widget-fade {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: widgetEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.widget-fade:nth-child(1) { animation-delay: 0.1s; }
+.widget-fade:nth-child(2) { animation-delay: 0.2s; }
+.widget-fade:nth-child(3) { animation-delay: 0.3s; }
+.widget-fade:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes widgetEntrance {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 3. Clock Widget */
+#clock-widget {
+  display: flex;
+  align-items: baseline;
   justify-content: center;
+  gap: 8px;
 }
 
 #clock {
-  font-size: 160px;
+  font-size: 120px;
   font-weight: 800;
   letter-spacing: -0.04em;
-  line-height: 1;
-  text-shadow: 0 10px 40px rgba(0,0,0,0.5);
-  margin-bottom: 8px;
+  line-height: 0.95;
+  text-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  /* Prevents horizontal layout jumps on clock ticks */
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+#clock-ampm {
+  font-size: 24px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* 4. Greeting & Quote Widget */
+#greeting-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
 }
 
 #greeting {
-  font-size: 22px;
-  font-weight: 300;
-  opacity: 0.9;
-  letter-spacing: 0.05em;
-  text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  text-shadow: 0 4px 14px rgba(0,0,0,0.5);
 }
 
-.footer {
+.quote-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px) saturate(110%);
+  padding: 10px 24px;
+  border-radius: 20px;
+  max-width: 460px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  text-align: center;
+}
+
+.quote-card:hover {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+#quote-text {
+  font-size: 14px;
+  font-weight: 300;
+  font-style: italic;
+  line-height: 1.45;
+  color: #fffdf9;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+#quote-author {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-accent-blue);
+  opacity: 0.9;
+  margin-top: 1px;
+}
+
+/* 5. Minimal Google Search Bar */
+.search-bar-container {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px) saturate(110%);
+  border-radius: 30px;
+  padding: 6px 18px;
+  width: 380px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.search-bar-container:hover {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.search-bar-container:focus-within {
+  background: rgba(0, 0, 0, 0.55);
+  border-color: var(--color-accent-blue);
+  width: 420px;
+  box-shadow: 0 4px 24px rgba(124, 168, 230, 0.25);
+}
+
+.search-icon {
+  color: var(--color-warm-white);
+  opacity: 0.6;
+  margin-right: 12px;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.search-bar-container:focus-within .search-icon {
+  opacity: 0.9;
+  color: var(--color-accent-blue);
+}
+
+#search-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-warm-white);
+  font-family: var(--font-main);
+  font-size: 15px;
+  font-weight: 400;
+  width: 100%;
+  padding: 8px 0;
+}
+
+#search-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* 6. Daily Focus Goal Widget */
+#focus-widget {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+}
+
+#focus-prompt {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+#focus-input {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+  outline: none;
+  color: var(--color-warm-white);
+  font-family: var(--font-main);
+  font-size: 18px;
+  font-weight: 400;
+  text-align: center;
+  padding: 4px 8px;
+  width: 260px;
+  transition: border-color 0.2s ease;
+}
+
+#focus-input:focus {
+  border-color: var(--color-warm-white);
+}
+
+#focus-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+#focus-display-container {
+  display: flex;
+  align-items: center;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  border-radius: 20px;
+  padding: 8px 16px;
+  gap: 12px;
+  box-shadow: var(--glass-shadow);
+  animation: widgetEntrance 0.3s ease forwards;
+}
+
+.focus-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.focus-checkbox-label input {
+  display: none;
+}
+
+/* Custom checkbox circle styling */
+.custom-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--color-warm-white);
+  opacity: 0.7;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.focus-checkbox-label:hover .custom-checkbox {
+  opacity: 1;
+  background: rgba(255,255,255,0.1);
+}
+
+.focus-checkbox-label input:checked + .custom-checkbox {
+  background: var(--color-emerald);
+  border-color: var(--color-emerald);
+  opacity: 1;
+}
+
+.focus-checkbox-label input:checked + .custom-checkbox::after {
+  content: '';
   position: absolute;
-  bottom: 40px;
-  left: 40px;
-  right: 40px;
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+#focus-text {
+  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  transition: all 0.2s ease;
+}
+
+.focus-checkbox-label input:checked ~ #focus-text {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+#focus-clear-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-warm-white);
+  opacity: 0.5;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+#focus-clear-btn:hover {
+  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* 7. Bottom-Left Panel (Wallpaper Details) */
+.bottom-left-panel {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.vibe-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  padding: 12px 18px;
+  border-radius: 16px;
+  box-shadow: var(--glass-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 180px;
+}
+
+.vibe-text-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.vibe-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  opacity: 0.5;
+  text-transform: uppercase;
+}
+
+#wallpaper-name {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 2px 0 0 0;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.vibe-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 8. Bottom-Right Panel (Triggers) */
+.bottom-right-panel {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  z-index: 10;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  pointer-events: auto;
+}
+
+/* Floating button basic triggers */
+.floating-trigger {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  color: var(--color-warm-white);
+  box-shadow: var(--glass-shadow);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+
+.floating-trigger:hover {
+  transform: scale(1.1) translateY(-3px);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 16px 32px rgba(0,0,0,0.45);
+}
+
+.floating-trigger:active {
+  transform: scale(0.92) translateY(-1px);
+}
+
+/* Rotate gear on settings hover */
+#settings-toggle-btn:hover svg {
+  transform: rotate(90deg);
+}
+#settings-toggle-btn svg {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Rotate Zen Garden icon slightly on hover */
+#zen-garden-toggle-btn:hover svg {
+  transform: rotate(15deg) scale(1.1);
+}
+#zen-garden-toggle-btn svg {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Scale sound icon on hover */
+#soundscape-toggle-btn:hover svg {
+  transform: scale(1.1);
+}
+#soundscape-toggle-btn svg {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 9. Soundscapes Panel Popover */
+.soundscape-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.popover {
+  position: absolute;
+  bottom: 60px;
+  right: 0;
+  width: 250px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  opacity: 0;
+  transform: translateY(12px) scale(0.95);
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 50;
+}
+
+.popover.active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.popover h4 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+}
+
+.soundscape-option {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  z-index: 1;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 10px;
   font-size: 14px;
-  opacity: 0.7;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  transition: all 0.2s ease;
 }
 
-.logo {
-  font-weight: 600;
-  letter-spacing: 0.05em;
+.soundscape-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
 }
+
+.soundscape-option span {
+  font-weight: 500;
+}
+
+.sound-play-btn {
+  background: var(--light-glass-bg);
+  border: 1px solid var(--light-glass-border);
+  color: var(--color-warm-white);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sound-play-btn:hover {
+  background: var(--color-warm-white);
+  color: var(--color-chocolate);
+  transform: scale(1.05);
+}
+
+.sound-play-btn:active {
+  transform: scale(0.95);
+}
+
+.soundscape-option.active {
+  border-color: var(--color-emerald);
+}
+
+.soundscape-option.active .sound-play-btn {
+  background: var(--color-emerald);
+  border-color: var(--color-emerald);
+  color: white;
+}
+
+.soundscape-option.active .sound-play-btn:hover {
+  background: var(--color-emerald-hover);
+}
+
+.soundscape-volume-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+}
+
+.soundscape-volume-container svg {
+  opacity: 0.6;
+}
+
+#soundscape-volume {
+  flex-grow: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  outline: none;
+  cursor: pointer;
+}
+
+#soundscape-volume::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-warm-white);
+}
+
+/* 10. Drawer Component (Settings) */
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 320px;
+  background: rgba(18, 16, 16, 0.7);
+  border-left: 1px solid var(--glass-border);
+  backdrop-filter: blur(24px) saturate(110%);
+  z-index: 1000;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.4);
+  transform: translateX(100%);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer.open {
+  transform: translateX(0);
+}
+
+.drawer-header {
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.drawer-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.drawer-body {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-section h4 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.5;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setting-item label {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.setting-item input[type="text"] {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--color-warm-white);
+  font-family: var(--font-main);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.setting-item input[type="text"]:focus {
+  border-color: var(--color-accent-blue);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Custom switch sliders */
+.setting-item-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.15);
+  transition: .3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 24px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--color-emerald);
+}
+
+input:checked + .slider:before {
+  transform: translateX(18px);
+}
+
+/* Range slider adjustments */
+.slider-label-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.slider-label-group span {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.setting-item input[type="range"] {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  outline: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.setting-item input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-warm-white);
+  transition: transform 0.1s ease;
+}
+
+.setting-item input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Drawer Footer Links */
+.settings-footer-info {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 20px;
+}
+
+.accent-link {
+  color: var(--color-accent-blue);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  transition: opacity 0.2s ease;
+}
+
+.accent-link:hover {
+  text-decoration: underline;
+  opacity: 0.9;
+}
+
+.drawer-version {
+  font-size: 11px;
+  opacity: 0.4;
+  text-align: center;
+}
+
+/* 11. Buttons Styling (Sleek Glass and Accents) */
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-warm-white);
+  opacity: 0.6;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.icon-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.08);
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
+}
+
+.icon-btn-accent {
+  background: var(--light-glass-bg);
+  border: 1px solid var(--light-glass-border);
+  color: var(--color-warm-white);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.icon-btn-accent:hover {
+  background: var(--light-glass-hover);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.1) translateY(-2px);
+}
+
+.icon-btn-accent:active {
+  transform: scale(0.9) translateY(0);
+}
+
+/* Rotate next vibe button arrow on hover */
+#next-vibe-btn:hover svg {
+  transform: rotate(180deg);
+}
+#next-vibe-btn svg {
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.icon-btn-accent.active {
+  background: var(--color-emerald);
+  border-color: var(--color-emerald);
+  color: white;
+}
+
+.icon-btn-accent.active:hover {
+  background: var(--color-emerald-hover);
+}
+
+/* Custom Scrollbar for Settings Drawer */
+.drawer-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.drawer-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.drawer-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.drawer-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+
+/* Zen / Zero-distraction Mode (Clean Vibe Mode) */
+.center-content,
+.bottom-left-panel,
+.bottom-right-panel {
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.clean-vibe-mode .center-content {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(12px);
+}
+
+.clean-vibe-mode .bottom-left-panel {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(12px);
+}
+
+.clean-vibe-mode .bottom-right-panel {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(12px);
+}
+
+#zen-indicator {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(18, 16, 16, 0.65);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: var(--glass-shadow);
+  transition: opacity 0.4s ease;
+}
+
+#zen-indicator.show {
+  opacity: 0.8;
+}
+
+/* Zen Garden Widget Styles */
+.zen-garden-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.stage-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--color-emerald);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(80, 179, 134, 0.25);
+}
+
+.plant-display {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.plant-display svg {
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
+  animation: gentleSway 4s ease-in-out infinite alternate;
+}
+
+@keyframes gentleSway {
+  0% { transform: rotate(-1.5deg); }
+  100% { transform: rotate(1.5deg); }
+}
+
+.zen-garden-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.progress-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.progress-bar-bg {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+#plant-progress-fill {
+  height: 100%;
+  background: var(--color-emerald);
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.zen-garden-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-water {
+  background: var(--color-emerald);
+  border: none;
+  color: white;
+  padding: 10px;
+  width: 100%;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(80, 179, 134, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-water:hover:not(:disabled) {
+  background: var(--color-emerald-hover);
+  transform: scale(1.03) translateY(-1px);
+  box-shadow: 0 6px 16px rgba(80, 179, 134, 0.45);
+}
+
+.btn-water:active:not(:disabled) {
+  transform: scale(0.97) translateY(0);
+}
+
+.btn-water:disabled {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.3);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+#water-cooldown-label {
+  font-size: 11px;
+  opacity: 0.5;
+  font-weight: 500;
+}
+
+

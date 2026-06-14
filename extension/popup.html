@@ -1,132 +1,278 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <title>Cozy Engine Companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --color-primary: #2f365e;
-      --color-bg: #fffaf0;
-      --color-text: #4d566f;
-      --color-accent: rgba(255, 255, 255, 0.4);
+      --color-primary: #2d2424; /* Cozy warm chocolate */
+      --color-bg: #fffbf5; /* Warm soft cream */
+      --color-surface: #fbf5eb; /* Card surface cream */
+      --color-text: #4e4444; /* Soft dark text */
+      --color-text-light: #807373; /* Muted secondary text */
+      --color-emerald: #50b386;
+      --color-accent-blue: #7ca8e6;
+      --border-light: rgba(45, 36, 36, 0.08);
+      --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    body { 
-      width: 320px; 
+
+    body {
+      width: 320px;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: var(--color-bg); 
+      font-family: var(--font-family);
+      background: var(--color-bg);
       color: var(--color-text);
+      -webkit-font-smoothing: antialiased;
+      box-sizing: border-box;
     }
+
     .container {
-      padding: 24px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
+
+    /* Header Styling */
     .header {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 24px;
     }
+
     .logo-mark {
-      width: 44px;
-      height: 44px;
-      background: var(--color-primary);
-      border-radius: 14px;
-      display: grid;
-      place-items: center;
-      color: white;
-      font-weight: 700;
-      font-size: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(45, 36, 36, 0.15);
     }
+
     .header-text {
       display: flex;
       flex-direction: column;
     }
-    h2 { font-size: 20px; margin: 0; color: var(--color-primary); font-weight: 700; }
-    .status { font-size: 11px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
 
-    .btn { 
-      background: var(--color-primary); 
-      color: white; 
-      border: none; 
-      padding: 14px; 
-      width: 100%; 
-      border-radius: 12px; 
-      cursor: pointer; 
-      font-weight: 600; 
-      font-size: 14px;
-      margin-bottom: 12px;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    h2 {
+      font-size: 18px;
+      margin: 0;
+      color: var(--color-primary);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      color: var(--color-emerald);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background-color: var(--color-emerald);
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 6px var(--color-emerald);
+    }
+
+    /* Thumbnail Preview Widget */
+    .preview-card {
+      position: relative;
+      width: 100%;
+      height: 140px;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #e6dfd5;
+      box-shadow: 0 6px 18px rgba(45, 36, 36, 0.08);
+      border: 1px solid var(--border-light);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 12px rgba(80, 91, 147, 0.2);
     }
-    .btn:hover { 
-      background: #4d566f; 
+
+    #preview-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+      transition: opacity 0.3s ease;
+    }
+
+    #preview-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--color-text-light);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .preview-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.1) 60%);
+      pointer-events: none;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+
+    #preview-name {
+      color: #fffbf5;
+      font-size: 13px;
+      font-weight: 600;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Primary Actions */
+    .btn {
+      background: var(--color-primary);
+      color: #fffbf5;
+      border: none;
+      padding: 12px;
+      width: 100%;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(45, 36, 36, 0.12);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn:hover {
+      background: #473a3a;
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(80, 91, 147, 0.3);
+      box-shadow: 0 6px 16px rgba(45, 36, 36, 0.18);
     }
+
+    .btn:active {
+      transform: translateY(-1px);
+    }
+
     .btn:disabled {
-      opacity: 0.7;
+      opacity: 0.6;
       cursor: not-allowed;
-      transform: none;
+      transform: none !important;
+      box-shadow: none !important;
     }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.5);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(80, 91, 147, 0.15);
+      background: var(--color-surface);
+      border: 1px solid var(--border-light);
       color: var(--color-primary);
       box-shadow: none;
     }
+
     .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.8);
-      color: var(--color-primary);
-      border-color: rgba(80, 91, 147, 0.3);
+      background: #f4eae0;
+      border-color: rgba(45, 36, 36, 0.2);
     }
-    
-    .settings-group {
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid rgba(80, 91, 147, 0.1);
+
+    /* Settings section */
+    .settings-panel {
+      background: var(--color-surface);
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
+
     .settings-label {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
-      color: var(--color-primary);
-      margin-bottom: 8px;
-      display: block;
+      color: var(--color-text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
+
+    .select-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
     select {
       width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid rgba(80, 91, 147, 0.2);
-      background: rgba(255, 255, 255, 0.6);
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-light);
+      background: #fff;
       color: var(--color-primary);
-      font-size: 14px;
+      font-family: var(--font-family);
+      font-size: 13px;
       font-weight: 500;
       cursor: pointer;
       outline: none;
-    }
-    select:focus {
-      border-color: var(--color-primary);
+      -webkit-appearance: none;
+      transition: all 0.2s ease;
     }
 
+    select:focus {
+      border-color: var(--color-accent-blue);
+      box-shadow: 0 0 0 2px rgba(124, 168, 230, 0.15);
+    }
+
+    .select-chevron {
+      position: absolute;
+      right: 12px;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    /* Footer */
     .footer {
-      border-top: 1px solid rgba(80, 91, 147, 0.1);
-      padding: 16px 24px;
+      border-top: 1px solid var(--border-light);
+      padding: 12px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 12px;
+      font-size: 11px;
     }
+
     .dev-link {
-      color: var(--color-primary);
+      color: var(--color-text-light);
       text-decoration: none;
-      font-weight: 600;
+      font-weight: 500;
+      transition: color 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
+
     .dev-link:hover {
+      color: var(--color-primary);
       text-decoration: underline;
     }
+
     .version {
       opacity: 0.5;
       font-weight: 500;
@@ -135,36 +281,76 @@
 </head>
 <body>
   <div class="container">
+    <!-- Header -->
     <div class="header">
-      <div class="logo-mark">C</div>
+      <img class="logo-mark" src="icons/icon128.png" alt="Cozy Engine Logo">
       <div class="header-text">
         <h2>Cozy Engine</h2>
-        <span class="status">System Active</span>
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span>Sanctuary Active</span>
+        </div>
       </div>
     </div>
-    
-    <button id="rotate-btn" class="btn">New Random Vibe</button>
-    <button id="site-btn" class="btn btn-secondary">Visit Sanctuary</button>
 
-    <div class="settings-group">
-      <label class="settings-label" for="interval-select">Rotate Wallpaper Every:</label>
-      <select id="interval-select">
-        <option value="1">1 Minute</option>
-        <option value="15">15 Minutes</option>
-        <option value="30">30 Minutes</option>
-        <option value="60">1 Hour</option>
-        <option value="180">3 Hours</option>
-        <option value="360">6 Hours</option>
-        <option value="1440">24 Hours</option>
-      </select>
+    <!-- Wallpaper Thumbnail Card -->
+    <div class="preview-card">
+      <img id="preview-image" alt="Wallpaper Preview">
+      <div id="preview-placeholder">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Loading vibe...</span>
+      </div>
+      <div class="preview-overlay">
+        <h4 id="preview-name">Cozy Sanctuary</h4>
+      </div>
+    </div>
+
+    <!-- Primary action -->
+    <button id="rotate-btn" class="btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+      <span>New Random Vibe</span>
+    </button>
+
+    <!-- Secondary action row -->
+    <div class="btn-row">
+      <button id="dl-btn" class="btn btn-secondary" title="Download current wallpaper">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        <span>Download</span>
+      </button>
+      <button id="site-btn" class="btn btn-secondary" title="Go to website">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+        <span>Sanctuary</span>
+      </button>
+    </div>
+
+    <!-- Rotation configurations -->
+    <div class="settings-panel">
+      <label class="settings-label" for="interval-select">Rotate Vibe Every:</label>
+      <div class="select-wrapper">
+        <select id="interval-select">
+          <option value="1">1 Minute</option>
+          <option value="15">15 Minutes</option>
+          <option value="30">30 Minutes</option>
+          <option value="60">1 Hour</option>
+          <option value="180">3 Hours</option>
+          <option value="360">6 Hours</option>
+          <option value="1440">24 Hours</option>
+        </select>
+        <!-- Custom SVG chevron -->
+        <svg class="select-chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
     </div>
   </div>
 
+  <!-- Footer -->
   <div class="footer">
-    <a href="https://github.com/yadavnikhil03" target="_blank" class="dev-link">@yadavnikhil03</a>
-    <span class="version">v1.1.0</span>
+    <a href="https://github.com/yadavnikhil03" target="_blank" class="dev-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      <span>@yadavnikhil03</span>
+    </a>
+    <span class="version">v1.2.2</span>
   </div>
-  
+
   <script src="popup.js"></script>
 </body>
 </html>

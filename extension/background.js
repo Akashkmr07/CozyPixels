@@ -1,4 +1,4 @@
-const DEFAULT_API = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public/wallpapers.json';
+const DEFAULT_API = 'https://cozy-pixels.vercel.app/api/wallpapers';
 const STATIC_BASE = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public';
 
 const DEFAULT_INTERVAL = 60;
@@ -41,48 +41,60 @@ async function fetchAndSaveWallpapers() {
     await rotateWallpaper();
   } catch (err) {
     console.error('Cozy Engine: Failed to fetch wallpapers', err);
+    fetch('http://localhost:3001/api/wallpapers')
+      .then(res => res.json())
+      .then(data => chrome.storage.local.set({ allWallpapers: data }))
+      .catch(() => {});
   }
 }
 
 async function rotateWallpaper() {
   try {
-    const result = await chrome.storage.local.get(['allWallpapers']);
-    if (!result.allWallpapers || result.allWallpapers.length === 0) {
+    const result = await chrome.storage.local.get(['allWallpapers', 'favoriteWallpapers', 'toggleCycleFavorites']);
+    
+    let wallpapersList = result.allWallpapers || [];
+    
+    // Filter list to favorites if settings dictate and there are favorites
+    if (result.toggleCycleFavorites && result.favoriteWallpapers && result.favoriteWallpapers.length > 0) {
+      wallpapersList = result.favoriteWallpapers;
+    }
+
+    if (wallpapersList.length === 0) {
       console.log('No wallpapers in storage, fetching now...');
       await fetchAndSaveWallpapers();
       return;
     }
     
-    if (result.allWallpapers && result.allWallpapers.length > 0) {
-      const randomIdx = Math.floor(Math.random() * result.allWallpapers.length);
-      const selected = result.allWallpapers[randomIdx];
-      
-      const wallpaperUrl = selected.path.startsWith('http') 
-        ? selected.path 
-        : `${STATIC_BASE}${selected.path}`;
+    const randomIdx = Math.floor(Math.random() * wallpapersList.length);
+    const selected = wallpapersList[randomIdx];
+    
+    const wallpaperUrl = selected.path.startsWith('http') 
+      ? selected.path 
+      : `${STATIC_BASE}${selected.path}`;
 
-      try {
-        const imgResponse = await fetch(wallpaperUrl);
-        const blob = await imgResponse.blob();
-        const buffer = await blob.arrayBuffer();
-        const base64 = arrayBufferToBase64(buffer);
-        const dataUrl = `data:${blob.type};base64,${base64}`;
+    try {
+      const imgResponse = await fetch(wallpaperUrl);
+      const blob = await imgResponse.blob();
+      const buffer = await blob.arrayBuffer();
+      const base64 = arrayBufferToBase64(buffer);
+      const dataUrl = `data:${blob.type};base64,${base64}`;
 
-        await chrome.storage.local.set({ 
-          currentWallpaper: wallpaperUrl,
-          cachedImage: dataUrl,
-          currentMeta: selected
-        });
+      await chrome.storage.local.set({ 
+        currentWallpaper: wallpaperUrl,
+        cachedImage: dataUrl,
+        currentMeta: selected
+      });
 
-        chrome.runtime.sendMessage({ action: "refreshUI" }).catch(() => {});
-      } catch (imgErr) {
-        console.error('Failed to download image for caching:', imgErr);
-        await chrome.storage.local.set({ 
-          currentWallpaper: wallpaperUrl,
-          cachedImage: null,
-          currentMeta: selected
-        });
-      }
+      chrome.runtime.sendMessage({ action: "refreshUI" }).catch(() => {});
+    } catch (imgErr) {
+      console.error('Failed to download image for caching:', imgErr);
+      await chrome.storage.local.set({ 
+        currentWallpaper: wallpaperUrl,
+        cachedImage: null,
+        currentMeta: selected
+      });
+      // Try to notify newtab UI to refresh background even if image caching failed
+      chrome.runtime.sendMessage({ action: "refreshUI" }).catch(() => {});
     }
   } catch (err) {
     console.error('Cozy Engine: Rotation error', err);
