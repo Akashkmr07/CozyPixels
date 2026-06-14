@@ -3,7 +3,7 @@ const path = require('path');
 
 const wallpapersPath = path.join(__dirname, 'wallpapers.json');
 const sitemapPath = path.join(__dirname, '..', 'frontend', 'public', 'sitemap.xml');
-const BASE_URL = 'https://cozy-pixels.vercel.app';
+const BASE_URL = 'https://cozypixels.eu.org';
 
 let wallpapers = [];
 try {

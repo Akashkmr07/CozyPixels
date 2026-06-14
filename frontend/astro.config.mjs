@@ -7,7 +7,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://cozy-pixels.vercel.app',
+  site: 'https://cozypixels.eu.org',
   integrations: [react(), sitemap()],
   vite: {
     resolve: {

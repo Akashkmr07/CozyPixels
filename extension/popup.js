@@ -103,7 +103,7 @@ document.getElementById('dl-btn').addEventListener('click', async () => {
 
 // Visit sanctuary page
 document.getElementById('site-btn').addEventListener('click', () => {
-  chrome.tabs.create({ url: 'https://cozy-pixels.vercel.app/' });
+  chrome.tabs.create({ url: 'https://cozypixels.eu.org/' });
 });
 
 // Update rotation interval timer setting

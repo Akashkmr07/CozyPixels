@@ -5,7 +5,7 @@
   "description": "Your serene digital sanctuary in every new tab.",
   "permissions": ["storage", "alarms"],
   "host_permissions": [
-    "https://cozy-pixels.vercel.app/*",
+    "https://cozypixels.eu.org/*",
     "https://cdn.jsdelivr.net/*",
     "http://localhost:3001/*"
   ],
