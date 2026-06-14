@@ -20,6 +20,15 @@ Allow: /
 User-agent: Applebot-Extended
 Allow: /
 
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: FacebookBot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
 # Block scraper-only bots
 User-agent: Bytespider
 Disallow: /
