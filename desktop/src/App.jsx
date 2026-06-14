@@ -203,7 +203,7 @@ const UpdateModal = ({ show, onClose, state, version, progress, errorMsg, onInst
 
 const API_URL = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public/wallpapers.json';
 const STATIC_URL = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public';
-const APP_VERSION = '1.0.8';
+const APP_VERSION = '1.0.9';
 
 const Toast = ({ message, type }) => {
   const iconMap = {
