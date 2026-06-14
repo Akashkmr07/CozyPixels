@@ -3,7 +3,7 @@
 CozyPixels is a completely free, open-source library containing over 900+ curated 4K wallpapers. It provides a highly curated collection of aesthetic wallpapers organized by color palettes such as Catppuccin, Nord, and One Dark. 
 
 ## Platforms
-- **Web App**: https://cozy-pixels.vercel.app
+- **Web App**: https://cozypixels.eu.org
 - **Desktop App**: A lightweight, blazing-fast native application for Windows and macOS that auto-rotates wallpapers.
 - **Chrome Extension**: Transforms your new tab page into a cozy, aesthetic workspace.
 
@@ -16,9 +16,9 @@ CozyPixels is a completely free, open-source library containing over 900+ curate
 ## Official Links
 - GitHub: https://github.com/yadavnikhil03/CozyPixels
 - Download Desktop App: https://github.com/yadavnikhil03/CozyPixels/releases
-- Chrome Extension: https://cozy-pixels.vercel.app/cozy-engine.zip
+- Chrome Extension: https://cozypixels.eu.org/cozy-engine.zip
 
 ## Legal
-- Privacy Policy: https://cozy-pixels.vercel.app/privacy
-- Terms & Conditions: https://cozy-pixels.vercel.app/terms
+- Privacy Policy: https://cozypixels.eu.org/privacy
+- Terms & Conditions: https://cozypixels.eu.org/terms
 - Contact: hello@cozypixels.app

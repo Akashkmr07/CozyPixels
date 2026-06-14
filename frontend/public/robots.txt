@@ -36,4 +36,4 @@ Disallow: /
 User-agent: CCBot
 Disallow: /
 
-Sitemap: https://cozy-pixels.vercel.app/sitemap-index.xml
+Sitemap: https://cozypixels.eu.org/sitemap-index.xml

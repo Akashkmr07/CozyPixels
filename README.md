@@ -5,7 +5,7 @@
   <p><strong>A curated collection of minimalist, serene, and high-resolution wallpapers.</strong></p>
   
   <p>
-    <a href="https://cozy-pixels.vercel.app/"><strong>Visit the Website -></strong></a>
+    <a href="https://cozypixels.eu.org/"><strong>Visit the Website -></strong></a>
   </p>
 </div>
 
@@ -21,8 +21,8 @@ CozyPixels started as a collection of beautiful wallpapers and turned into a ded
 ## Desktop App & Browser Extension
 We built native desktop and browser apps to integrate these wallpapers directly into your daily workflow.
 
-### Desktop App (Windows)
-The standalone desktop app gives you a beautiful native experience to manage and set wallpapers on your computer.
+### Desktop App (Windows, macOS, Linux)
+The standalone desktop app gives you a beautiful native experience to manage and set wallpapers on your computer across multiple platforms.
 - Add local folders or fetch ultra-high resolution images directly from the web.
 - Automatically changes your desktop wallpaper on a customizable timer.
 - Runs silently in the system tray.
@@ -35,7 +35,7 @@ We also built a Chrome extension that replaces your new tab page with a rotating
 - Caches images offline so they load instantly without any network delay.
 
 ### Installation
-1. Go to [CozyPixels](https://cozy-pixels.vercel.app/).
+1. Go to [CozyPixels](https://cozypixels.eu.org/).
 2. Click **"Install Extension"** to download the extension package.
 3. Open `chrome://extensions` in your browser.
 4. Turn on **Developer mode**.
