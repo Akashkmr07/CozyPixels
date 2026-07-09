@@ -5,7 +5,7 @@
   <p><strong>A curated collection of minimalist, serene, and high-resolution wallpapers.</strong></p>
   
   <p>
-    <a href="https://cozypixels.eu.org/"><strong>Visit the Website -></strong></a>
+    <a href="https://cozy-pixels.vercel.app/"><strong>Visit the Website -></strong></a>
   </p>
 </div>
 
