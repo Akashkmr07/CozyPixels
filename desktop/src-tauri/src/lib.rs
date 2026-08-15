@@ -3,13 +3,17 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::sync::OnceLock;
-use std::thread;
 use std::time::Duration;
 use tauri::Emitter;
 
 fn image_cache() -> &'static Mutex<HashMap<String, Vec<u8>>> {
     static CACHE: OnceLock<Mutex<HashMap<String, Vec<u8>>>> = OnceLock::new();
     CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn http_client() -> &'static reqwest::Client {
+    static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+    CLIENT.get_or_init(|| reqwest::Client::new())
 }
 
 static ROTATE_RUNNING: AtomicBool = AtomicBool::new(false);
@@ -209,7 +213,7 @@ async fn start_auto_rotate(
     let initial_delay = initial_delay_ms.unwrap_or(interval_ms);
     ROTATE_INTERVAL.store(interval_ms, std::sync::atomic::Ordering::SeqCst);
 
-    thread::spawn(move || {
+    tauri::async_runtime::spawn(async move {
         let mut first_run = true;
         loop {
             if !ROTATE_RUNNING.load(std::sync::atomic::Ordering::SeqCst) {
@@ -231,7 +235,7 @@ async fn start_auto_rotate(
                 if !ROTATE_RUNNING.load(std::sync::atomic::Ordering::SeqCst) {
                     break;
                 }
-                thread::sleep(Duration::from_millis(500));
+                tokio::time::sleep(Duration::from_millis(500)).await;
             }
             
             first_run = false;
@@ -240,10 +244,11 @@ async fn start_auto_rotate(
                 break;
             }
 
-            let mut idx = index.lock().unwrap();
-            *idx = (*idx + 1) % wallpapers.len();
-            let current = wallpapers[*idx].clone();
-            drop(idx);
+            let current = {
+                let mut idx = index.lock().unwrap();
+                *idx = (*idx + 1) % wallpapers.len();
+                wallpapers[*idx].clone()
+            };
 
             let url = current.url.clone();
             let name = current.name.clone();
@@ -253,24 +258,19 @@ async fn start_auto_rotate(
                 let filename = url.split('/').last().unwrap_or("wallpaper.jpg").to_string();
                 let temp_path = temp_dir.join(format!("cozypixels_{}", filename));
 
-                if let Ok(entries) = std::fs::read_dir(&temp_dir) {
-                    for entry in entries.flatten() {
-                        if let Some(name) = entry.file_name().to_str() {
-                            if name.starts_with("cozypixels_")
-                                && name != format!("cozypixels_{}", filename).as_str()
-                            {
-                                let _ = std::fs::remove_file(entry.path());
-                            }
-                        }
+                if temp_path.exists() {
+                    if let Some(path_str) = temp_path.to_str() {
+                        let _ = set_wallpaper_os(path_str);
+                        let _ = window.emit("wallpaper-changed", &name);
                     }
-                }
-
-                if let Ok(response) = reqwest::blocking::get(&url) {
-                    if let Ok(bytes) = response.bytes() {
-                        let _ = std::fs::write(&temp_path, &bytes);
-                        if let Some(path_str) = temp_path.to_str() {
-                            let _ = set_wallpaper_os(path_str);
-                            let _ = window.emit("wallpaper-changed", &name);
+                } else {
+                    if let Ok(response) = http_client().get(&url).send().await {
+                        if let Ok(bytes) = response.bytes().await {
+                            let _ = tokio::fs::write(&temp_path, &bytes).await;
+                            if let Some(path_str) = temp_path.to_str() {
+                                let _ = set_wallpaper_os(path_str);
+                                let _ = window.emit("wallpaper-changed", &name);
+                            }
                         }
                     }
                 }
