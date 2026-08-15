@@ -29,6 +29,8 @@ The standalone desktop app gives you a beautiful native experience to manage and
 
 **[Download the App](https://github.com/yadavnikhil03/CozyPixels/releases/latest)**
 
+> **Note for Windows Users:** Because CozyPixels is a new indie app without a paid EV certificate, Windows SmartScreen might show a warning when you run the installer. Click **More info -> Run anyway** to safely install the app.
+
 ### Browser Extension (Cozy Engine)
 We also built a Chrome extension that replaces your new tab page with a rotating cozy wallpaper. 
 - Automatically changes wallpapers based on a timer you set.

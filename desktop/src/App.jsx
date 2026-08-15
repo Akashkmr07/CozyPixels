@@ -409,7 +409,20 @@ const Lightbox = ({ wallpaper, onClose, onSetWallpaper, onSetLockScreen, onDownl
             <LuChevronLeft size={24} />
           </button>
         )}
-        {imgSrc && <img src={imgSrc} alt={displayName} className="lightbox__img" />}
+        <AnimatePresence mode="wait">
+          {imgSrc && (
+            <motion.img 
+              key={imgSrc} 
+              src={imgSrc} 
+              alt={displayName} 
+              className="lightbox__img" 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            />
+          )}
+        </AnimatePresence>
         {hasNext && (
           <button className="lightbox__nav lightbox__nav--next" onClick={(e) => { e.stopPropagation(); onNext(); }} aria-label="Next wallpaper">
             <LuChevronRight size={24} />
@@ -1098,7 +1111,6 @@ export default function App() {
       <AnimatePresence mode="wait">
         {preview && (
           <Lightbox
-            key={preview.path}
             wallpaper={preview}
             onClose={() => setPreview(null)}
             onSetWallpaper={handleSetWallpaper}
