@@ -77,7 +77,8 @@ fn set_wallpaper_os(path: &str) -> Result<(), String> {
         use std::iter::once;
         use std::os::windows::ffi::OsStrExt;
 
-        let wide: Vec<u16> = OsStr::new(path).encode_wide().chain(once(0)).collect();
+        let path_str = path.replace('/', "\\");
+        let wide: Vec<u16> = OsStr::new(&path_str).encode_wide().chain(once(0)).collect();
 
         let result = unsafe {
             winapi::um::winuser::SystemParametersInfoW(
@@ -215,24 +216,22 @@ async fn start_auto_rotate(
                 break;
             }
 
-            let mut elapsed_ms: u64 = 0;
-            loop {
+            let start_time = std::time::SystemTime::now();
+            let current_target = if first_run {
+                initial_delay
+            } else {
+                ROTATE_INTERVAL.load(std::sync::atomic::Ordering::SeqCst)
+            };
+            let target_duration = std::time::Duration::from_millis(current_target);
+
+            while let Ok(elapsed) = start_time.elapsed() {
+                if elapsed >= target_duration {
+                    break;
+                }
                 if !ROTATE_RUNNING.load(std::sync::atomic::Ordering::SeqCst) {
                     break;
                 }
-                
-                let current_target = if first_run {
-                    initial_delay
-                } else {
-                    ROTATE_INTERVAL.load(std::sync::atomic::Ordering::SeqCst)
-                };
-
-                if elapsed_ms >= current_target {
-                    break;
-                }
-
                 thread::sleep(Duration::from_millis(500));
-                elapsed_ms += 500;
             }
             
             first_run = false;
