@@ -1,4 +1,4 @@
-const DEFAULT_API = 'https://cozypixels.eu.org/api/wallpapers';
+const DEFAULT_API = 'https://cozy-pixels.vercel.app/api/wallpapers';
 const STATIC_BASE = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public';
 
 const DEFAULT_INTERVAL = 60;
@@ -50,11 +50,18 @@ async function fetchAndSaveWallpapers() {
 
 async function rotateWallpaper() {
   try {
+    
+    const liveState = await chrome.storage.local.get(['toggleLiveWallpaper']);
+    if (liveState.toggleLiveWallpaper) {
+      console.log('Cozy Engine: skipping static rotation — live wallpaper is active');
+      return;
+    }
+
     const result = await chrome.storage.local.get(['allWallpapers', 'favoriteWallpapers', 'toggleCycleFavorites']);
     
     let wallpapersList = result.allWallpapers || [];
     
-    // Filter list to favorites if settings dictate and there are favorites
+    
     if (result.toggleCycleFavorites && result.favoriteWallpapers && result.favoriteWallpapers.length > 0) {
       wallpapersList = result.favoriteWallpapers;
     }
@@ -93,7 +100,7 @@ async function rotateWallpaper() {
         cachedImage: null,
         currentMeta: selected
       });
-      // Try to notify newtab UI to refresh background even if image caching failed
+      
       chrome.runtime.sendMessage({ action: "refreshUI" }).catch(() => {});
     }
   } catch (err) {

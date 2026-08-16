@@ -68,7 +68,6 @@ function startSound(type) {
   if (activeSounds[type]) return;
 
   if (type === 'rain') {
-    // Background heavy rain rumble (pink noise lowpass)
     const source1 = audioCtx.createBufferSource();
     source1.buffer = getPinkNoiseBuffer();
     source1.loop = true;
@@ -366,6 +365,17 @@ function stopSound(type) {
   }
 }
 
+// Applies a soft blur to the wallpaper. A subtle scale-up rides along with
+// it, since a blurred background-size:cover element would otherwise show
+// faint blurred edges at the viewport border.
+function applyBackgroundBlur(px) {
+  const bg = document.getElementById('sanctuary-bg');
+  if (!bg) return;
+  const amount = Math.max(0, Math.min(20, px));
+  bg.style.filter = amount > 0 ? `blur(${amount}px)` : 'none';
+  bg.style.transform = amount > 0 ? `scale(${1 + amount / 100})` : 'scale(1)';
+}
+
 // --- 2. Wallpaper & Vibe Rendering ---
 async function updateUI() {
   const result = await chrome.storage.local.get([
@@ -374,6 +384,7 @@ async function updateUI() {
     'currentMeta', 
     'favoriteWallpapers',
     'dimmerVal',
+    'bgBlurVal',
     'userName',
     'toggleClock',
     'toggle12h',
@@ -416,6 +427,11 @@ async function updateUI() {
   document.getElementById('bg-dimmer-overlay').style.opacity = dimmerOpacity / 100;
   document.getElementById('dimmer-slider').value = dimmerOpacity;
   document.getElementById('dimmer-value').innerText = `${dimmerOpacity}%`;
+
+  const bgBlur = result.bgBlurVal !== undefined ? result.bgBlurVal : 0;
+  applyBackgroundBlur(bgBlur);
+  document.getElementById('blur-slider').value = bgBlur;
+  document.getElementById('blur-value').innerText = `${bgBlur}px`;
 
   // Apply toggle show/hide states
   toggleElementVisibility('clock-widget', result.toggleClock !== false);
@@ -854,6 +870,8 @@ function setupSettingsDrawer() {
   const searchCheck = document.getElementById('toggle-search');
   const dimmerSlider = document.getElementById('dimmer-slider');
   const dimmerValText = document.getElementById('dimmer-value');
+  const blurSlider = document.getElementById('blur-slider');
+  const blurValText = document.getElementById('blur-value');
   const cycleFavoritesCheck = document.getElementById('toggle-cycle-favorites');
 
   // Username Change
@@ -905,6 +923,14 @@ function setupSettingsDrawer() {
     chrome.storage.local.set({ dimmerVal: val }, () => {
       document.getElementById('bg-dimmer-overlay').style.opacity = val / 100;
       dimmerValText.innerText = `${val}%`;
+    });
+  });
+
+  blurSlider.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value, 10);
+    chrome.storage.local.set({ bgBlurVal: val }, () => {
+      applyBackgroundBlur(val);
+      blurValText.innerText = `${val}px`;
     });
   });
 
@@ -1455,6 +1481,527 @@ function getPlantSVG(growth, health = 'healthy') {
   }
 }
 
+// --- 9b. Most Visited Websites Widget ---
+// Curated hostname -> pretty display name map. Falls back to a prettified
+// domain for anything not listed here. This also doubles as our "smart
+// grouping" table: entries that share a key are grouped as one site.
+const MV_KNOWN_SITES = {
+  'youtube.com': 'YouTube',
+  'github.com': 'GitHub',
+  'chatgpt.com': 'ChatGPT',
+  'chat.openai.com': 'ChatGPT',
+  'claude.ai': 'Claude',
+  'linkedin.com': 'LinkedIn',
+  'mail.google.com': 'Gmail',
+  'docs.google.com': 'Google Docs',
+  'drive.google.com': 'Google Drive',
+  'calendar.google.com': 'Google Calendar',
+  'accounts.google.com': 'Google',
+  'twitter.com': 'Twitter',
+  'x.com': 'X',
+  'reddit.com': 'Reddit',
+  'instagram.com': 'Instagram',
+  'facebook.com': 'Facebook',
+  'stackoverflow.com': 'Stack Overflow',
+  'amazon.com': 'Amazon',
+  'netflix.com': 'Netflix',
+  'whatsapp.com': 'WhatsApp',
+  'web.whatsapp.com': 'WhatsApp',
+  'notion.so': 'Notion',
+  'figma.com': 'Figma',
+  'wikipedia.org': 'Wikipedia',
+  'open.spotify.com': 'Spotify',
+  'spotify.com': 'Spotify'
+};
+
+
+const MV_EXCLUDED_SEARCH_HOMEPAGES = /^google\.[a-z.]{2,}$/i;
+
+
+const MV_IGNORED_URL_PATTERNS = [
+  /^chrome:/i, /^chrome-extension:/i, /^chrome-search:/i, /^chrome-untrusted:/i,
+  /^edge:/i, /^about:/i, /^devtools:/i, /^file:/i, /^view-source:/i
+];
+
+const MV_MIN_REFRESH_INTERVAL_MS = 30000; // don't recompute more than once per 30s
+const MV_MAX_SLOTS = 5; 
+let mvLastComputeTime = 0;
+
+
+const MV_CACHE_VERSION = 2;
+
+
+function mvNormalizeHostname(hostname) {
+  return hostname.toLowerCase().replace(/^(www|m|mobile|amp)\./, '');
+}
+
+function mvPrettifyDomain(hostname) {
+  const parts = hostname.split('.');
+  const main = parts.length > 2 ? parts[parts.length - 2] : parts[0];
+  return main.charAt(0).toUpperCase() + main.slice(1);
+}
+
+function mvEscapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+
+async function mvComputeRanking(mode, excludedSet, excludedNameSet) {
+  if (!chrome.history || !chrome.history.search) {
+    return null;
+  }
+
+  const periodMs = mode === 'daily' ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const startTime = now - periodMs;
+
+  let historyItems;
+  try {
+    historyItems = await chrome.history.search({ text: '', startTime, maxResults: 3000 });
+  } catch (err) {
+    console.error('Most Visited: history query failed', err);
+    return null;
+  }
+
+  const groups = new Map();
+
+  for (const item of historyItems) {
+    if (!item.url) continue;
+    if (MV_IGNORED_URL_PATTERNS.some((p) => p.test(item.url))) continue;
+
+    let urlObj;
+    try {
+      urlObj = new URL(item.url);
+    } catch {
+      continue;
+    }
+    if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') continue;
+    if (urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1') continue;
+
+    const rawHost = urlObj.hostname.toLowerCase();
+    const normalizedHost = mvNormalizeHostname(rawHost);
+    if (MV_EXCLUDED_SEARCH_HOMEPAGES.test(normalizedHost)) continue;
+
+    const known = MV_KNOWN_SITES[rawHost];
+    const groupKey = known ? rawHost : normalizedHost;
+    if (excludedSet && excludedSet.has(groupKey)) continue;
+    const displayName = known || MV_KNOWN_SITES[groupKey] || mvPrettifyDomain(groupKey);
+    if (excludedNameSet && excludedNameSet.has(displayName.toLowerCase())) continue;
+
+    if (!groups.has(groupKey)) {
+      groups.set(groupKey, { name: displayName, hostname: groupKey, totalVisits: 0, lastVisit: 0, sampleUrl: item.url });
+    }
+    const g = groups.get(groupKey);
+    g.totalVisits += item.visitCount || 1;
+    if (item.lastVisitTime > g.lastVisit) {
+      g.lastVisit = item.lastVisitTime;
+      g.sampleUrl = item.url; // most recent URL for this site, used to open/match tabs
+    }
+  }
+
+  const candidates = Array.from(groups.values());
+  if (candidates.length === 0) return [];
+
+  const maxVisits = Math.max(...candidates.map((c) => c.totalVisits));
+  candidates.forEach((c) => {
+    const visitScore = maxVisits > 0 ? c.totalVisits / maxVisits : 0;
+    const recencyScore = Math.max(0, Math.min(1, (c.lastVisit - startTime) / periodMs));
+    
+    c.score = visitScore * 0.65 + recencyScore * 0.35;
+  });
+
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates.slice(0, MV_MAX_SLOTS);
+}
+
+function mvRenderRanking(items) {
+  const container = document.getElementById('most-visited-list');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  if (items === null) {
+    const empty = document.createElement('div');
+    empty.className = 'mv-empty';
+    empty.textContent = 'No browsing history available.';
+    container.appendChild(empty);
+    return;
+  }
+  if (items.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'mv-empty';
+    empty.textContent = 'Your most visited sites will appear here.';
+    container.appendChild(empty);
+    return;
+  }
+
+  items.forEach((site, idx) => {
+   
+    const chip = document.createElement('div');
+    chip.className = site.pinned ? 'mv-site mv-pinned' : 'mv-site';
+    chip.setAttribute('role', 'button');
+    chip.tabIndex = 0;
+    chip.style.animationDelay = `${idx * 0.06}s`;
+    chip.dataset.hostname = site.hostname;
+    chip.dataset.url = site.sampleUrl;
+
+    if (site.pinned) {
+      chip.setAttribute('aria-label', `Open ${site.name} (pinned)`);
+      chip.title = `${site.name} — Pinned`;
+    } else {
+      const visitLabel = site.totalVisits === 1 ? '1 visit' : `${site.totalVisits} visits`;
+      // Visit count is intentionally not shown as a visible badge - only the
+      // favicon + name are displayed. It's kept here for screen readers and
+      // the hover tooltip only.
+      chip.setAttribute('aria-label', `Open ${site.name}, ${visitLabel}`);
+      chip.title = `${site.name} — ${visitLabel}`;
+    }
+
+    
+    const faviconUrl = site.sampleUrl
+      ? `chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(site.sampleUrl)}&size=32`
+      : '';
+    const removeLabel = site.pinned ? `Unpin ${site.name}` : `Remove ${site.name} from Most Visited`;
+    const initial = mvEscapeHtml((site.name || '?').charAt(0).toUpperCase());
+
+    chip.innerHTML = `
+      <span class="mv-favicon">${
+        faviconUrl
+          ? `<img src="${faviconUrl}" alt="" width="16" height="16" onerror="mvFaviconFallback(this, '${initial}')">`
+          : `<span class="mv-favicon-fallback">${initial}</span>`
+      }</span>
+      <span class="mv-name">${mvEscapeHtml(site.name)}</span>
+      <button type="button" class="mv-remove-btn" aria-label="${mvEscapeHtml(removeLabel)}" title="${mvEscapeHtml(removeLabel)}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    `;
+
+    const openSite = (e) => {
+      mvSpawnRipple(chip, e);
+      mvHandleClick(site);
+    };
+
+    chip.addEventListener('click', openSite);
+    chip.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openSite(e);
+      }
+    });
+
+    const removeBtn = chip.querySelector('.mv-remove-btn');
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (site.pinned) {
+        mvUnpinSite(site.hostname, chip);
+      } else {
+        mvHideSite(site.hostname, chip);
+      }
+    });
+    // Prevent the chip's own click/keydown handling from firing when the
+    // remove button is used via keyboard too.
+    removeBtn.addEventListener('keydown', (e) => e.stopPropagation());
+
+    container.appendChild(chip);
+  });
+}
+
+
+function mvFaviconFallback(imgEl, letter) {
+  const span = document.createElement('span');
+  span.className = 'mv-favicon-fallback';
+  span.textContent = letter;
+  if (imgEl && imgEl.parentNode) imgEl.replaceWith(span);
+}
+
+// Small Material-style click ripple, contained to the button, matching the
+// 150-250ms timing used by the rest of the extension's micro-interactions.
+function mvSpawnRipple(btn, event) {
+  const existing = btn.querySelector('.mv-ripple');
+  if (existing) existing.remove();
+
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height) * 1.6;
+  const x = (event.clientX ?? rect.left + rect.width / 2) - rect.left - size / 2;
+  const y = (event.clientY ?? rect.top + rect.height / 2) - rect.top - size / 2;
+
+  const ripple = document.createElement('span');
+  ripple.className = 'mv-ripple';
+  ripple.style.width = `${size}px`;
+  ripple.style.height = `${size}px`;
+  ripple.style.left = `${x}px`;
+  ripple.style.top = `${y}px`;
+
+  btn.appendChild(ripple);
+  ripple.addEventListener('animationend', () => ripple.remove());
+}
+
+
+async function mvHideSite(hostname, chipEl) {
+  if (chipEl) chipEl.classList.add('mv-removing');
+
+  const { mvHiddenSites } = await chrome.storage.local.get(['mvHiddenSites']);
+  const hidden = Array.isArray(mvHiddenSites) ? mvHiddenSites.slice() : [];
+  if (!hidden.includes(hostname)) hidden.push(hostname);
+  await chrome.storage.local.set({ mvHiddenSites: hidden });
+
+ 
+  setTimeout(() => mvRefresh(true), 220);
+}
+
+
+function mvParseUserSiteInput(raw) {
+  let value = (raw || '').trim();
+  if (!value) return null;
+  if (!/^https?:\/\//i.test(value)) value = 'https://' + value;
+  try {
+    const u = new URL(value);
+    if (!u.hostname.includes('.')) return null;
+    return u;
+  } catch {
+    return null;
+  }
+}
+
+async function mvPinSite(urlObj) {
+  const rawHost = urlObj.hostname.toLowerCase();
+  const hostname = mvNormalizeHostname(rawHost);
+  const name = MV_KNOWN_SITES[rawHost] || MV_KNOWN_SITES[hostname] || mvPrettifyDomain(hostname);
+
+  const { mvPinnedSites, mvHiddenSites } = await chrome.storage.local.get(['mvPinnedSites', 'mvHiddenSites']);
+  const pinned = Array.isArray(mvPinnedSites) ? mvPinnedSites.slice() : [];
+
+  if (pinned.some((p) => p.hostname === hostname)) {
+    return { error: `${name} is already pinned.` };
+  }
+  
+  if (pinned.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
+    return { error: `${name} is already pinned.` };
+  }
+  if (pinned.length >= MV_MAX_SLOTS) {
+    return { error: `Most Visited is full (${MV_MAX_SLOTS}/${MV_MAX_SLOTS}). Unpin a site first.` };
+  }
+
+  pinned.push({ hostname, name, url: urlObj.href });
+  
+  const hidden = (Array.isArray(mvHiddenSites) ? mvHiddenSites : []).filter((h) => h !== hostname);
+
+  await chrome.storage.local.set({ mvPinnedSites: pinned, mvHiddenSites: hidden });
+  mvRefresh(true);
+  return { success: true, name };
+}
+
+async function mvUnpinSite(hostname, chipEl) {
+  if (chipEl) chipEl.classList.add('mv-removing');
+
+  const { mvPinnedSites } = await chrome.storage.local.get(['mvPinnedSites']);
+  const pinned = (Array.isArray(mvPinnedSites) ? mvPinnedSites : []).filter((p) => p.hostname !== hostname);
+  await chrome.storage.local.set({ mvPinnedSites: pinned });
+
+  setTimeout(() => mvRefresh(true), 220);
+}
+
+
+function mvSetManualPanelVisible(visible) {
+  const panel = document.getElementById('mv-manual-add-panel');
+  if (panel) panel.hidden = !visible;
+}
+
+
+async function mvHandleClick(site) {
+  try {
+    const tabs = await chrome.tabs.query({});
+    const match = tabs.find((t) => {
+      if (!t.url) return false;
+      try {
+        const h = mvNormalizeHostname(new URL(t.url).hostname);
+        const siteHost = mvNormalizeHostname(site.hostname);
+        return h === siteHost;
+      } catch {
+        return false;
+      }
+    });
+
+    if (match) {
+      await chrome.tabs.update(match.id, { active: true });
+      await chrome.windows.update(match.windowId, { focused: true });
+    } else {
+      await chrome.tabs.create({ url: site.sampleUrl });
+    }
+  } catch (err) {
+    console.error('Most Visited: could not focus/open tab', err);
+    try { await chrome.tabs.create({ url: site.sampleUrl }); } catch { /* no-op */ }
+  }
+}
+
+async function mvRefresh(force = false) {
+  const now = Date.now();
+  if (!force && now - mvLastComputeTime < MV_MIN_REFRESH_INTERVAL_MS) return;
+  mvLastComputeTime = now;
+
+  const { mvRankingMode, mvHiddenSites, mvPinnedSites } = await chrome.storage.local.get(
+    ['mvRankingMode', 'mvHiddenSites', 'mvPinnedSites']
+  );
+  const mode = mvRankingMode === 'daily' ? 'daily' : 'weekly';
+  const pinned = Array.isArray(mvPinnedSites) ? mvPinnedSites : [];
+
+  
+  const excludedSet = new Set([
+    ...(Array.isArray(mvHiddenSites) ? mvHiddenSites : []),
+    ...pinned.map((p) => p.hostname)
+  ]);
+  
+  const excludedNameSet = new Set(pinned.map((p) => p.name.toLowerCase()));
+
+  const remainingSlots = Math.max(0, MV_MAX_SLOTS - pinned.length);
+  const autoItems = remainingSlots > 0 ? await mvComputeRanking(mode, excludedSet, excludedNameSet) : [];
+
+  
+  const pinnedItems = pinned.map((p) => ({ ...p, pinned: true, sampleUrl: p.url }));
+
+  let finalItems;
+  if (autoItems === null) {
+    
+    finalItems = pinnedItems.length > 0 ? pinnedItems : null;
+  } else {
+    finalItems = [...pinnedItems, ...autoItems.slice(0, remainingSlots)].slice(0, MV_MAX_SLOTS);
+  }
+
+  mvRenderRanking(finalItems);
+
+  if (autoItems !== null) {
+    chrome.storage.local.set({ mvCache: { items: autoItems, computedAt: now, mode, version: MV_CACHE_VERSION } });
+  }
+}
+
+function mvSetModeUI(mode) {
+  const dailyBtn = document.getElementById('mv-mode-daily');
+  const weeklyBtn = document.getElementById('mv-mode-weekly');
+  if (!dailyBtn || !weeklyBtn) return;
+  dailyBtn.classList.toggle('active', mode === 'daily');
+  dailyBtn.setAttribute('aria-checked', mode === 'daily');
+  weeklyBtn.classList.toggle('active', mode === 'weekly');
+  weeklyBtn.setAttribute('aria-checked', mode === 'weekly');
+}
+
+
+function mvSetGlassUI(enabled) {
+  const list = document.getElementById('most-visited-list');
+  const toggle = document.getElementById('toggle-mv-glass');
+  if (list) list.classList.toggle('mv-glass-enhanced', enabled);
+  if (toggle) toggle.checked = enabled;
+}
+
+function setupMostVisited() {
+  const container = document.getElementById('most-visited-list');
+  if (!container) return;
+
+  
+  chrome.storage.local.get(
+    ['mvCache', 'mvRankingMode', 'mvGlassEnhanced', 'mvPinnedSites', 'mvManualAddEnabled'],
+    (result) => {
+      mvSetModeUI(result.mvRankingMode === 'daily' ? 'daily' : 'weekly');
+      mvSetGlassUI(result.mvGlassEnhanced === true);
+      mvSetManualPanelVisible(result.mvManualAddEnabled === true);
+      const manualToggle = document.getElementById('toggle-mv-manual');
+      if (manualToggle) manualToggle.checked = result.mvManualAddEnabled === true;
+
+      const pinned = (result.mvPinnedSites || []).map((p) => ({ ...p, pinned: true, sampleUrl: p.url }));
+      const cache = result.mvCache;
+      const remainingSlots = Math.max(0, MV_MAX_SLOTS - pinned.length);
+
+      if (pinned.length > 0 || (cache && cache.items && cache.version === MV_CACHE_VERSION)) {
+        const autoPart = (cache && cache.version === MV_CACHE_VERSION) ? cache.items : [];
+        mvRenderRanking([...pinned, ...autoPart.slice(0, remainingSlots)].slice(0, MV_MAX_SLOTS));
+      }
+      mvRefresh(true);
+    }
+  );
+
+  
+  if (chrome.history && chrome.history.onVisited) {
+    chrome.history.onVisited.addListener(() => mvRefresh(false));
+  }
+
+ 
+  setInterval(() => mvRefresh(false), MV_MIN_REFRESH_INTERVAL_MS);
+
+  
+  const dailyBtn = document.getElementById('mv-mode-daily');
+  const weeklyBtn = document.getElementById('mv-mode-weekly');
+
+  if (dailyBtn && weeklyBtn) {
+    dailyBtn.addEventListener('click', () => {
+      chrome.storage.local.set({ mvRankingMode: 'daily' }, () => {
+        mvSetModeUI('daily');
+        mvRefresh(true);
+      });
+    });
+
+    weeklyBtn.addEventListener('click', () => {
+      chrome.storage.local.set({ mvRankingMode: 'weekly' }, () => {
+        mvSetModeUI('weekly');
+        mvRefresh(true);
+      });
+    });
+  }
+
+  
+  const glassToggle = document.getElementById('toggle-mv-glass');
+  if (glassToggle) {
+    glassToggle.addEventListener('change', () => {
+      const val = glassToggle.checked;
+      chrome.storage.local.set({ mvGlassEnhanced: val }, () => {
+        mvSetGlassUI(val);
+      });
+    });
+  }
+
+  
+  const manualToggle = document.getElementById('toggle-mv-manual');
+  if (manualToggle) {
+    manualToggle.addEventListener('change', () => {
+      const val = manualToggle.checked;
+      chrome.storage.local.set({ mvManualAddEnabled: val }, () => {
+        mvSetManualPanelVisible(val);
+      });
+    });
+  }
+
+  
+  const addInput = document.getElementById('mv-add-input');
+  const addConfirmBtn = document.getElementById('mv-add-confirm');
+  const addErrorEl = document.getElementById('mv-add-error');
+
+  const confirmAdd = async () => {
+    const urlObj = mvParseUserSiteInput(addInput ? addInput.value : '');
+    if (!urlObj) {
+      if (addErrorEl) addErrorEl.textContent = 'Enter a valid site, e.g. spotify.com';
+      return;
+    }
+    const result = await mvPinSite(urlObj);
+    if (result.error) {
+      if (addErrorEl) addErrorEl.textContent = result.error;
+      return;
+    }
+    if (addErrorEl) addErrorEl.textContent = `${result.name} added.`;
+    if (addInput) addInput.value = '';
+  };
+
+  if (addConfirmBtn) addConfirmBtn.addEventListener('click', confirmAdd);
+  if (addInput) {
+    addInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        confirmAdd();
+      }
+    });
+  }
+}
+
 // --- 10. Event Listeners & Bootstrapping ---
 chrome.runtime.onMessage.addListener((message) => {
   if (message.action === "refreshUI") {
@@ -1471,6 +2018,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSettingsDrawer();
   setupCleanVibeMode();
   setupZenGarden();
+  setupMostVisited();
   updateUI();
   fetchQuote();
 });

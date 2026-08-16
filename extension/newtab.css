@@ -42,7 +42,11 @@ body, html {
   background-repeat: no-repeat;
   z-index: 0;
   opacity: 0;
-  transition: opacity 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+  filter: blur(0px);
+  transform: scale(1);
+  transition: opacity 1.2s cubic-bezier(0.25, 1, 0.5, 1),
+              filter 0.4s ease,
+              transform 0.4s ease;
   background-color: #12100e;
 }
 
@@ -54,13 +58,54 @@ body, html {
   pointer-events: none;
 }
 
+#live-wallpaper-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+  background-color: #12100e;
+}
+
+#live-wallpaper-layer.active {
+  opacity: 1;
+}
+
+#live-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+#live-web {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: none;
+}
+
+#live-gif-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: none;
+}
+
 #bg-dimmer-overlay {
   position: absolute;
   inset: 0;
   background: #000000;
   z-index: 1;
   pointer-events: none;
-  opacity: 0.20; /* Default dimmer setting (20%) */
+  opacity: 0.20; 
   transition: opacity 0.3s ease;
 }
 
@@ -86,7 +131,7 @@ body, html {
   pointer-events: auto;
 }
 
-/* Fade animation for widgets load */
+
 .widget-fade {
   opacity: 0;
   transform: translateY(8px);
@@ -96,6 +141,7 @@ body, html {
 .widget-fade:nth-child(2) { animation-delay: 0.2s; }
 .widget-fade:nth-child(3) { animation-delay: 0.3s; }
 .widget-fade:nth-child(4) { animation-delay: 0.4s; }
+.widget-fade:nth-child(5) { animation-delay: 0.5s; }
 
 @keyframes widgetEntrance {
   to {
@@ -118,7 +164,6 @@ body, html {
   letter-spacing: -0.04em;
   line-height: 0.95;
   text-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
-  /* Prevents horizontal layout jumps on clock ticks */
   font-variant-numeric: tabular-nums;
   user-select: none;
 }
@@ -132,7 +177,7 @@ body, html {
   text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-/* 4. Greeting & Quote Widget */
+
 #greeting-widget {
   display: flex;
   flex-direction: column;
@@ -313,7 +358,7 @@ body, html {
   display: none;
 }
 
-/* Custom checkbox circle styling */
+
 .custom-checkbox {
   width: 18px;
   height: 18px;
@@ -436,7 +481,6 @@ body, html {
   pointer-events: auto;
 }
 
-/* Floating button basic triggers */
 .floating-trigger {
   width: 48px;
   height: 48px;
@@ -464,7 +508,6 @@ body, html {
   transform: scale(0.92) translateY(-1px);
 }
 
-/* Rotate gear on settings hover */
 #settings-toggle-btn:hover svg {
   transform: rotate(90deg);
 }
@@ -472,7 +515,6 @@ body, html {
   transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Rotate Zen Garden icon slightly on hover */
 #zen-garden-toggle-btn:hover svg {
   transform: rotate(15deg) scale(1.1);
 }
@@ -480,7 +522,6 @@ body, html {
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Scale sound icon on hover */
 #soundscape-toggle-btn:hover svg {
   transform: scale(1.1);
 }
@@ -488,7 +529,6 @@ body, html {
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* 9. Soundscapes Panel Popover */
 .soundscape-container {
   position: relative;
   display: flex;
@@ -708,7 +748,7 @@ body, html {
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* Custom switch sliders */
+
 .setting-item-toggle {
   display: flex;
   justify-content: space-between;
@@ -796,7 +836,7 @@ input:checked + .slider:before {
   transform: scale(1.2);
 }
 
-/* Drawer Footer Links */
+
 .settings-footer-info {
   margin-top: auto;
   display: flex;
@@ -874,7 +914,6 @@ input:checked + .slider:before {
   transform: scale(0.9) translateY(0);
 }
 
-/* Rotate next vibe button arrow on hover */
 #next-vibe-btn:hover svg {
   transform: rotate(180deg);
 }
@@ -892,7 +931,6 @@ input:checked + .slider:before {
   background: var(--color-emerald-hover);
 }
 
-/* Custom Scrollbar for Settings Drawer */
 .drawer-body::-webkit-scrollbar {
   width: 6px;
 }
@@ -911,7 +949,6 @@ input:checked + .slider:before {
 }
 
 
-/* Zen / Zero-distraction Mode (Clean Vibe Mode) */
 .center-content,
 .bottom-left-panel,
 .bottom-right-panel {
@@ -960,7 +997,6 @@ input:checked + .slider:before {
   opacity: 0.8;
 }
 
-/* Zen Garden Widget Styles */
 .zen-garden-header {
   display: flex;
   justify-content: space-between;
@@ -1079,5 +1115,474 @@ input:checked + .slider:before {
   opacity: 0.5;
   font-weight: 500;
 }
+
+/* 12. Most Visited Websites Widget (bottom of the widget stack) */
+#most-visited-widget {
+  margin-top: 4px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.most-visited-list {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  max-width: 580px;
+}
+
+.mv-site {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  color: var(--color-warm-white);
+  font-family: var(--font-main);
+  padding: 8px 14px 8px 10px;
+  border-radius: 14px;
+  box-shadow: var(--glass-shadow);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: widgetEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: background 0.2s ease, border-color 0.2s ease,
+              transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+
+.mv-site:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.06) translateY(-2px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.35);
+}
+
+.mv-site:active {
+  transform: scale(0.94) translateY(0);
+}
+
+.mv-site:focus-visible {
+  outline: 2px solid var(--color-accent-blue);
+  outline-offset: 2px;
+}
+
+.mv-favicon {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.mv-favicon img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.mv-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mv-empty {
+  font-size: 13px;
+  opacity: 0.55;
+  text-align: center;
+  padding: 6px 12px;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.mv-remove-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(20, 18, 18, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: var(--color-warm-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
+}
+
+.mv-site:hover .mv-remove-btn,
+.mv-site:focus-within .mv-remove-btn,
+.mv-remove-btn:focus-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.mv-remove-btn:hover {
+  background: #d9534f;
+  border-color: #d9534f;
+}
+
+.mv-remove-btn:active {
+  transform: scale(0.85);
+}
+
+.mv-site.mv-removing {
+  animation: mvChipRemove 0.2s ease forwards;
+  pointer-events: none;
+}
+
+@keyframes mvChipRemove {
+  to { opacity: 0; transform: scale(0.85) translateY(6px); }
+}
+
+.segmented-control {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.segmented-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--color-warm-white);
+  opacity: 0.6;
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 0;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.segmented-btn:hover {
+  opacity: 0.9;
+}
+
+.segmented-btn.active {
+  background: var(--color-emerald);
+  color: white;
+  opacity: 1;
+}
+
+.segmented-btn:focus-visible {
+  outline: 2px solid var(--color-accent-blue);
+  outline-offset: 2px;
+}
+
+.setting-description {
+  font-size: 11px;
+  opacity: 0.5;
+  line-height: 1.4;
+}
+
+.mv-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 70%);
+  transform: scale(0);
+  pointer-events: none;
+  animation: mvRippleEffect 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes mvRippleEffect {
+  0% { transform: scale(0); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.mv-glass-enhanced .mv-site {
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(22px) saturate(180%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.mv-glass-enhanced .mv-site:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+.mv-glass-enhanced .mv-favicon {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+
+.mv-favicon-fallback {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--color-warm-white);
+}
+
+.mv-site.mv-pinned {
+  border-color: rgba(233, 196, 106, 0.35);
+}
+
+.mv-site.mv-pinned .mv-favicon::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e9c46a;
+  border: 1px solid rgba(20, 18, 18, 0.6);
+  transform: translate(6px, -6px);
+}
+
+.mv-site.mv-pinned .mv-favicon {
+  position: relative;
+}
+
+.mv-manual-add-panel {
+  margin-top: 8px;
+}
+
+.mv-add-row {
+  display: flex;
+  gap: 8px;
+}
+
+.mv-add-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--color-warm-white);
+  font-family: var(--font-main);
+  font-size: 13px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  outline: none;
+}
+
+.mv-add-input:focus {
+  border-color: var(--color-emerald);
+}
+
+.mv-add-confirm-btn {
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: var(--color-emerald);
+  color: white;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mv-add-confirm-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.mv-add-error {
+  font-size: 11px;
+  color: #e07a7a;
+  min-height: 14px;
+  margin-top: 6px;
+}
+
+/*  Live Wallpapers settings section ---- */
+
+.live-wp-add-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.live-wp-add-row input[type="text"] {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--color-warm-white);
+  font-family: var(--font-main);
+  font-size: 13px;
+  outline: none;
+  min-width: 0;
+  transition: all 0.2s ease;
+}
+
+.live-wp-add-row input[type="text"]:focus {
+  border-color: var(--color-accent-blue);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.live-wp-btn {
+  background: var(--light-glass-bg);
+  border: 1px solid var(--light-glass-border);
+  color: var(--color-warm-white);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-family: var(--font-main);
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.live-wp-btn:hover {
+  background: var(--light-glass-hover);
+}
+
+.live-wp-status {
+  display: block;
+  font-size: 12px;
+  color: var(--color-emerald);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  min-height: 14px;
+  margin-top: 6px;
+}
+
+.live-wp-storage {
+  display: block;
+  font-size: 11px;
+  opacity: 0.4;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.live-wp-empty {
+  font-size: 12px;
+  opacity: 0.5;
+  text-align: center;
+  padding: 18px 8px;
+  margin-top: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  line-height: 1.5;
+}
+
+.live-wp-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.live-wp-card {
+  cursor: pointer;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+  position: relative;
+}
+
+.live-wp-card:hover {
+  transform: translateY(-2px);
+}
+
+.live-wp-card.active {
+  border-color: var(--color-emerald);
+}
+
+.live-wp-card__preview {
+  position: relative;
+  aspect-ratio: 16/10;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.live-wp-card__preview--web {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  opacity: 0.4;
+}
+
+.live-wp-card__badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--color-warm-white);
+}
+
+.live-wp-card__applied {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--color-emerald);
+  color: white;
+}
+
+.live-wp-card__name {
+  font-size: 11px;
+  padding: 6px 4px 2px;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-wp-card__delete {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--color-warm-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.live-wp-card:hover .live-wp-card__delete {
+  opacity: 1;
+}
+
+.live-wp-card__delete:hover {
+  background: #d9534f;
+}
+
+
+
 
 
