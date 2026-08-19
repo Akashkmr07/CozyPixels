@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from '../useFocusTrap.js';
 
 export const UpdateModal = ({ show, onClose, state, version, progress, errorMsg, onInstall }) => {
@@ -6,42 +7,51 @@ export const UpdateModal = ({ show, onClose, state, version, progress, errorMsg,
   const statusLabel = {
     checking: 'Checking for updates',
     available: 'Update ready',
-    uptodate: 'Up to date',
+    uptodate: 'All caught up',
     downloading: 'Installing update',
     error: 'Update failed',
   }[state] || 'Update';
 
-  const srMessage = {
+  const statusHint = {
     checking: 'Checking for updates…',
-    available: `Update version ${version} is available.`,
-    uptodate: 'You are using the latest version.',
-    downloading: `Downloading update. ${Math.round(progress)}% complete.`,
+    available: 'A newer desktop build is available.',
+    uptodate: "You're on the latest version.",
+    downloading: 'Installer is running. Keep the app open.',
     error: 'The update check could not complete.',
-  }[state];
+  }[state] || '';
+
+  useEffect(() => {
+    if (state === 'uptodate') {
+      const timer = setTimeout(onClose, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [state, onClose]);
 
   if (!show) return null;
-
   return (
-    <>
+    <AnimatePresence>
       {show && (
-        <div
+        <motion.div
           className="update-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           onClick={state !== 'downloading' ? onClose : undefined}
-          style={{ opacity: 1 }}
+          role="dialog" aria-modal="true" aria-label="Update"
+          ref={trapRef}
         >
-          <div
-            ref={trapRef}
-            role="dialog" aria-modal="true" aria-label="Update"
+          <motion.div
             className="update-modal"
-            style={{ opacity: 1, transform: 'scale(1)' }}
+            initial={{ opacity: 0, scale: 0.92, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: 30 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 340 }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="update-status-badge">{statusLabel}</div>
-            
             <div className="update-frame">
+
               {state === 'checking' && (
                 <div className="update-content update-content--tight">
-                  <div className="spinner" style={{ margin: '0 auto 12px' }} />
                   <p className="update-desc">Looking for the latest version.</p>
                 </div>
               )}
@@ -71,18 +81,16 @@ export const UpdateModal = ({ show, onClose, state, version, progress, errorMsg,
                   <p className="update-desc update-desc--prominent">Installing update. Keep the app open until it finishes.</p>
                   <div className="update-progress-wrap">
                     <div className="update-progress-track">
-                      <div 
+                      <motion.div 
                         className="update-progress-fill"
-                        style={{ width: `${progress}%` }}
-                        role="progressbar"
-                        aria-valuenow={Math.round(progress)}
-                        aria-valuemin="0"
-                        aria-valuemax="100"
+                        initial={{ width: '0%' }}
+                        animate={{ width: progress > 0 ? `${progress}%` : '100%' }}
+                        transition={progress > 0 ? { duration: 0.3 } : { duration: 2, repeat: Infinity, ease: 'linear' }}
                       />
                     </div>
                     <div className="update-progress-meta">
-                      <span>Downloading…</span>
-                      <span>{Math.round(progress)}%</span>
+                      <span>{progress > 0 ? `${Math.round(progress)}%` : 'Preparing installer'}</span>
+                      <span>{progress > 0 ? 'Downloading and installing' : 'This can take a moment'}</span>
                     </div>
                   </div>
                 </div>
@@ -97,13 +105,9 @@ export const UpdateModal = ({ show, onClose, state, version, progress, errorMsg,
                 </div>
               )}
             </div>
-
-            <div className="sr-only" aria-live="polite">
-              {srMessage}
-            </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
-    </>
+    </AnimatePresence>
   );
 };
