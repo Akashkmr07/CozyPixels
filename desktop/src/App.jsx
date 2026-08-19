@@ -15,459 +15,20 @@ import {
   LuFolderPlus, LuTriangleAlert
 } from 'react-icons/lu';
 import './App.css';
+import { SplashScreen } from './components/SplashScreen.jsx';
+import { Toast } from './components/Toast.jsx';
+import { WallpaperCard } from './components/WallpaperCard.jsx';
+import { Lightbox } from './components/Lightbox.jsx';
+import { UpdateModal } from './components/UpdateModal.jsx';
+import { getVersion } from '@tauri-apps/api/app';
 
-const SplashScreen = ({ visible }) => {
-  const circleRef = useRef(null);
-  const CIRCUMFERENCE = 2 * Math.PI * 44; // r=44
-
-  return (
-    <AnimatePresence>
-      {visible && (
-        <motion.div className="splash">
-          <motion.div 
-            className="splash__bg" 
-            initial={{ opacity: 1 }} 
-            exit={{ opacity: 0 }} 
-            transition={{ duration: 0.5 }} 
-          />
-
-          <div className="splash__content">
-            <motion.div
-              className="splash__logo-wrap"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <motion.svg className="splash__ring" viewBox="0 0 96 96" fill="none" exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.3 } }}>
-                <circle
-                  ref={circleRef}
-                  cx="48" cy="48" r="44"
-                  stroke="url(#splash-grad)"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeDasharray={CIRCUMFERENCE}
-                  strokeDashoffset={CIRCUMFERENCE}
-                  className="splash__ring-path"
-                />
-                <defs>
-                  <linearGradient id="splash-grad" x1="0" y1="0" x2="96" y2="96" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stopColor="var(--md-sys-color-primary)" />
-                    <stop offset="100%" stopColor="#5E5CE6" />
-                  </linearGradient>
-                </defs>
-              </motion.svg>
-              <motion.div
-                className="splash__icon"
-                layoutId="app-logo-icon"
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.25, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <LuSparkles size={30} />
-              </motion.div>
-            </motion.div>
-
-            <motion.h1
-              className="splash__title"
-              layoutId="app-logo-text"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            >
-              CozyPixels
-            </motion.h1>
-
-            <motion.div
-              className="splash__bar-track"
-              initial={{ opacity: 0, scaleX: 0.3 }}
-              animate={{ opacity: 1, scaleX: 1 }}
-              exit={{ opacity: 0, transition: { duration: 0.2 } }}
-              transition={{ delay: 0.6, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <div className="splash__bar-fill" />
-            </motion.div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
-
-const UpdateModal = ({ show, onClose, state, version, progress, errorMsg, onInstall }) => {
-  const trapRef = useFocusTrap(show);
-  const statusLabel = {
-    checking: 'Checking for updates',
-    available: 'Update ready',
-    uptodate: 'All caught up',
-    downloading: 'Installing update',
-    error: 'Update failed',
-  }[state] || 'Update';
-
-  const statusHint = {
-    checking: 'Checking for updates…',
-    available: 'A newer desktop build is available.',
-    uptodate: "You're on the latest version.",
-    downloading: 'Installer is running. Keep the app open.',
-    error: 'The update check could not complete.',
-  }[state] || '';
-
-  useEffect(() => {
-    if (state === 'uptodate') {
-      const timer = setTimeout(onClose, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [state, onClose]);
-
-  if (!show) return null;
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          className="update-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={state !== 'downloading' ? onClose : undefined}
-          role="dialog" aria-modal="true" aria-label="Update"
-          ref={trapRef}
-        >
-          <motion.div
-            className="update-modal"
-            initial={{ opacity: 0, scale: 0.92, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 30 }}
-            transition={{ type: 'spring', damping: 28, stiffness: 340 }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="update-frame">
-
-              {state === 'checking' && (
-                <div className="update-content update-content--tight">
-                  {/* status chip shows spinner; content kept minimal */}
-                  <p className="update-desc">Looking for the latest version.</p>
-                </div>
-              )}
-
-              {state === 'available' && (
-                <div className="update-content update-content--tight">
-                  <h2 className="update-available-title">Update available</h2>
-                  <p className="update-version-large">{version}</p>
-                  <div className="update-actions">
-                    <button className="update-btn update-btn--ghost" onClick={onClose}>Later</button>
-                    <button className="update-btn update-btn--primary" onClick={onInstall}>Install</button>
-                  </div>
-                </div>
-              )}
-
-              {state === 'uptodate' && (
-                <div className="update-content update-content--tight">
-                  <p className="update-desc update-desc--prominent">You're already up to date.</p>
-                  <div className="update-actions">
-                    <button className="update-btn update-btn--primary" onClick={onClose}>Awesome!</button>
-                  </div>
-                </div>
-              )}
-
-              {state === 'downloading' && (
-                <div className="update-content update-content--tight">
-                  <p className="update-desc update-desc--prominent">Installing update. Keep the app open until it finishes.</p>
-                  <div className="update-progress-wrap">
-                    <div className="update-progress-track">
-                      <motion.div 
-                        className="update-progress-fill"
-                        initial={{ width: '0%' }}
-                        animate={{ width: progress > 0 ? `${progress}%` : '100%' }}
-                        transition={progress > 0 ? { duration: 0.3 } : { duration: 2, repeat: Infinity, ease: 'linear' }}
-                      />
-                    </div>
-                    <div className="update-progress-meta">
-                      <span>{progress > 0 ? `${Math.round(progress)}%` : 'Preparing installer'}</span>
-                      <span>{progress > 0 ? 'Downloading and installing' : 'This can take a moment'}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {state === 'error' && (
-                <div className="update-content update-content--tight">
-                  <p className="update-desc update-desc--prominent">{errorMsg || 'Could not check for updates'}</p>
-                  <div className="update-actions">
-                    <button className="update-btn update-btn--primary" onClick={onClose}>Close</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
 
 const API_URL = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public/wallpapers.json';
 const STATIC_URL = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public';
-const APP_VERSION = '1.0.10';
-
-const Toast = ({ message, type }) => {
-  const iconMap = {
-    success: { icon: LuCheck, color: '#30D158' },
-    error: { icon: LuX, color: '#FF453A' },
-    wallpaper: { icon: LuMonitor, color: '#5E5CE6' },
-    rotate: { icon: LuRefreshCw, color: '#0A84FF' },
-  };
-  const { icon: Icon, color } = iconMap[type] || iconMap.success;
-  return (
-    <motion.div
-      className="toast"
-      initial={{ opacity: 0, y: 24, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -8, scale: 0.95 }}
-      transition={{ type: 'spring', damping: 24, stiffness: 300, mass: 0.9 }}
-    >
-      <div className="toast__icon" style={{ background: color }}>
-        <Icon size={16} />
-      </div>
-      <span className="toast__msg">{message}</span>
-    </motion.div>
-  );
-};
-
-const WallpaperCard = React.memo(({ wallpaper, onSetWallpaper, onPreview, onDownload, setting }) => {
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
-  const [imgSrc, setImgSrc] = useState(null);
-  const cardRef = useRef(null);
-
-  const baseImageUrl = useMemo(() => 
-    wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://') 
-      ? wallpaper.path 
-      : `${STATIC_URL}${wallpaper.path}`,
-    [wallpaper.path]
-  );
-
-  const displayName = useMemo(() => wallpaper.name
-    .replace(/\.[^/.]+$/, '')
-    .replace(/[-_]/g, ' ')
-    .replace(/\b\w/g, c => c.toUpperCase()),
-    [wallpaper.name]
-  );
-
-  const [retrySrc, setRetrySrc] = useState(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    let currentBlobUrl = null;
-
-    if (baseImageUrl.startsWith('http')) {
-      const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-          observer.disconnect();
-          setImgSrc(baseImageUrl);
-        }
-      }, { rootMargin: '300px' });
-
-      if (cardRef.current) observer.observe(cardRef.current);
-
-      return () => {
-        isMounted = false;
-        observer.disconnect();
-        if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
-      };
-    } else {
-      setImgSrc(baseImageUrl);
-    }
-  }, [baseImageUrl]);
-
-  useEffect(() => {
-    if (!error || !baseImageUrl.startsWith('http') || retrySrc) return;
-    (async () => {
-      try {
-        const bytes = await invoke('fetch_image_bytes', { url: baseImageUrl });
-        const blob = new Blob([new Uint8Array(bytes)]);
-        setRetrySrc(URL.createObjectURL(blob));
-      } catch {
-      }
-    })();
-  }, [error, baseImageUrl, retrySrc]);
-
-  return (
-    <div
-      ref={cardRef}
-            className="card fade-in"
-      onClick={() => loaded && onPreview(wallpaper)}
-      onDoubleClick={() => loaded && onSetWallpaper(wallpaper)}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); loaded && onPreview(wallpaper); } }}
-      role="button"
-      tabIndex={0}
-      aria-label={`${displayName} — ${wallpaper.category}`}
-    >
-      {!loaded && !error && <div className="card__skeleton" />}
-      {error && !retrySrc ? (
-        <div className="card__error"><LuImage size={22} /><span>Failed to load</span></div>
-      ) : (
-        imgSrc && <img
-          src={retrySrc || imgSrc}
-          alt={displayName}
-          onLoad={() => setLoaded(true)}
-          onError={() => !retrySrc && setError(true)}
-          className="card__img"
-          loading="lazy"
-          decoding="async"
-        />
-      )}
-      {loaded && (
-        <div className="card__overlay">
-          <div className="card__meta">
-            <span className="card__cat">{wallpaper.category}</span>
-            <span className="card__name">{displayName}</span>
-          </div>
-          <div className="card__actions">
-            <button
-              className={`card__btn card__btn--set ${setting ? 'loading' : ''}`}
-              onClick={e => { e.stopPropagation(); onSetWallpaper(wallpaper); }}
-              title="Set as Wallpaper"
-              aria-label={`Set ${displayName} as wallpaper`}
-              disabled={setting}
-            >
-              {setting ? <LuRefreshCw size={15} className="spin" /> : <LuMonitor size={15} />}
-            </button>
-            <button
-              className="card__btn"
-              onClick={e => { e.stopPropagation(); onDownload(wallpaper); }}
-              title="Download"
-              aria-label={`Download ${displayName}`}
-            >
-              <LuDownload size={15} />
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-});
-
-const Lightbox = ({ wallpaper, onClose, onSetWallpaper, onSetLockScreen, onDownload, setting, settingLock, onNext, onPrev, hasNext, hasPrev }) => {
-  const [imgSrc, setImgSrc] = useState(null);
-  const trapRef = useFocusTrap(true);
-
-  useEffect(() => {
-    const fn = e => { 
-      if (e.key === 'Escape') onClose(); 
-      if (e.key === 'ArrowRight' && hasNext) onNext();
-      if (e.key === 'ArrowLeft' && hasPrev) onPrev();
-    };
-    document.addEventListener('keydown', fn);
-    return () => document.removeEventListener('keydown', fn);
-  }, [onClose, onNext, onPrev, hasNext, hasPrev]);
-
-  useEffect(() => {
-    let isMounted = true;
-    let currentBlobUrl = null;
-    if (!wallpaper) return;
-    const baseImageUrl = wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://') ? wallpaper.path : `${STATIC_URL}${wallpaper.path}`;
-    
-    if (wallpaper.path.startsWith('http') && !wallpaper.realPath) {
-      invoke('fetch_image_bytes', { url: wallpaper.path })
-        .then(bytes => {
-          if (!isMounted) return;
-          const blob = new Blob([new Uint8Array(bytes)]);
-          currentBlobUrl = URL.createObjectURL(blob);
-          setImgSrc(currentBlobUrl);
-        })
-        .catch(err => {
-          if (!isMounted) return;
-          setImgSrc(baseImageUrl);
-        });
-    } else {
-      setImgSrc(baseImageUrl);
-    }
-    
-    return () => {
-      isMounted = false;
-      if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
-    };
-  }, [wallpaper]);
-
-  if (!wallpaper) return null;
-  const displayName = wallpaper.name
-    .replace(/\.[^/.]+$/, '')
-    .replace(/[-_]/g, ' ')
-    .replace(/\b\w/g, c => c.toUpperCase());
-
-  return (
-    <motion.div className="lightbox" onClick={onClose}
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      role="dialog" aria-modal="true" aria-label={`Preview: ${displayName}`}
-      ref={trapRef}>
-      <motion.div className="lightbox__box" onClick={e => e.stopPropagation()}
-        initial={{ scale: 0.95, opacity: 0, y: 15 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.95, opacity: 0, y: 10 }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}>
-        {hasPrev && (
-          <button className="lightbox__nav lightbox__nav--prev" onClick={(e) => { e.stopPropagation(); onPrev(); }} aria-label="Previous wallpaper">
-            <LuChevronLeft size={24} />
-          </button>
-        )}
-        <AnimatePresence mode="wait">
-          {imgSrc && (
-            <motion.img 
-              key={imgSrc} 
-              src={imgSrc} 
-              alt={displayName} 
-              className="lightbox__img" 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            />
-          )}
-        </AnimatePresence>
-        {hasNext && (
-          <button className="lightbox__nav lightbox__nav--next" onClick={(e) => { e.stopPropagation(); onNext(); }} aria-label="Next wallpaper">
-            <LuChevronRight size={24} />
-          </button>
-        )}
-        <div className="lightbox__bar">
-          <div className="lightbox__meta">
-            <span className="lightbox__name">{displayName}</span>
-            <span className="lightbox__cat">{wallpaper.category}</span>
-          </div>
-
-          <div className="lightbox__actions">
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                className={`lb-btn lb-btn--primary ${setting ? 'loading' : ''}`}
-                onClick={() => onSetWallpaper(wallpaper)}
-                disabled={setting || settingLock}
-                aria-label={`Set ${displayName} as wallpaper`}
-              >
-                {setting ? <LuRefreshCw size={15} className="spin" /> : <LuMonitor size={15} />}
-                {setting ? 'Setting...' : 'Set as Wallpaper'}
-              </button>
-              <button
-                className={`lb-btn lb-btn--ghost ${settingLock ? 'loading' : ''}`}
-                onClick={() => onSetLockScreen(wallpaper)}
-                disabled={setting || settingLock}
-                title="Set as Windows Lock Screen"
-                aria-label={`Set ${displayName} as lock screen`}
-              >
-                {settingLock ? <LuRefreshCw size={15} className="spin" /> : <LuMonitor size={15} />}
-                {settingLock ? 'Setting...' : 'Lock Screen'}
-              </button>
-            </div>
-            <button className="lb-btn lb-btn--ghost" onClick={() => onDownload(wallpaper)} aria-label={`Download ${displayName}`}>
-              <LuDownload size={15} /> Download
-            </button>
-          </div>
-          <button className="lightbox__close" onClick={onClose} aria-label="Close lightbox"><LuX size={16} /></button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
 
 export default function App() {
+  const [appVersion, setAppVersion] = useState('');
+  useEffect(() => { getVersion().then(setAppVersion); }, []);
   const updatesEnabled = !import.meta.env.DEV;
   const [wallpapers, setWallpapers] = useState([]);
   const [localFolders, setLocalFolders] = useState(() => JSON.parse(localStorage.getItem('cozy_localFolders') || '[]'));
@@ -624,7 +185,7 @@ export default function App() {
       if (manual) {
         // create a mock update that simulates a gradual download in dev
         pendingUpdateRef.current = {
-          version: APP_VERSION,
+          version: appVersion,
           downloadAndInstall: async (onEvent) => {
             onEvent?.({ event: 'Started', data: { contentLength: 100 } });
             // simulate chunked progress (10 steps)
@@ -637,7 +198,7 @@ export default function App() {
             onEvent?.({ event: 'Finished' });
           },
         };
-        showUpdateModal({ state: 'available', version: APP_VERSION });
+        showUpdateModal({ state: 'available', version: appVersion });
       }
       return;
     }
@@ -648,7 +209,7 @@ export default function App() {
         pendingUpdateRef.current = update;
         showUpdateModal({ state: 'available', version: update.version });
       } else if (manual) {
-        showUpdateModal({ state: 'uptodate', version: APP_VERSION });
+        showUpdateModal({ state: 'uptodate', version: appVersion });
       }
     } catch (err) {
       if (manual) {
@@ -683,7 +244,7 @@ export default function App() {
         await relaunch();
       } else {
         // dev: show installed state briefly then close
-        showUpdateModal({ state: 'uptodate', version: APP_VERSION });
+        showUpdateModal({ state: 'uptodate', version: appVersion });
         setTimeout(() => closeUpdateModal(), 1200);
       }
     } catch (err) {
@@ -712,7 +273,7 @@ export default function App() {
       manualRotateRef.current = false;
       return;
     }
-    if (autoRotate && allWallpapers.length > 0 && !rotateStatus) {
+    if (autoRotate && categoryCounts.All > 0 && !rotateStatus) {
       const pool = allWallpapers
         .filter(w => rotateCategory === 'All' || w.category === rotateCategory)
         .map(w => ({ name: w.name, url: w.realPath || (w.path.startsWith('http') || w.path.startsWith('cozy://') ? w.path : `${STATIC_URL}${w.path}`) }));
@@ -925,7 +486,7 @@ export default function App() {
           <button className={`nav__item ${category === 'All' ? 'active' : ''}`} onClick={() => setCategory('All')}>
             <LuLayoutGrid size={15} />
             <span>All wallpapers</span>
-            <span className="nav__badge">{allWallpapers.length}</span>
+            <span className="nav__badge">{categoryCounts.All}</span>
           </button>
           {categories.map(cat => {
             const isCustom = cat.startsWith('Local:');
@@ -938,7 +499,7 @@ export default function App() {
                 >
                   <LuImage size={15} style={{ flexShrink: 0 }} />
                   <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{cat}</span>
-                  <span className="nav__badge">{allWallpapers.filter(w => w.category === cat).length}</span>
+                  <span className="nav__badge">{(categoryCounts[cat] || 0)}</span>
                 </button>
                 {isCustom && (
                     <button 
@@ -1060,7 +621,7 @@ export default function App() {
             />
           </div>
           <div className="topbar__right">
-            <span className="topbar__count">{filtered.length} curated</span>
+            <span className="topbar__count">{category === 'All' ? '' : category + ' — '}{filtered.length} curated</span>
           </div>
         </div>
 

@@ -3,7 +3,17 @@
   "private": true,
   "version": "1.0.11",
   "description": "CozyPixels Desktop App - A curated collection of minimalist, serene, and high-resolution wallpapers featuring Catppuccin and Nord.",
-  "keywords": ["cozypixels", "wallpapers", "catppuccin", "nord", "onedark", "productivity", "pomodoro", "desktop-app", "sleepycathey"],
+  "keywords": [
+    "cozypixels",
+    "wallpapers",
+    "catppuccin",
+    "nord",
+    "onedark",
+    "productivity",
+    "pomodoro",
+    "desktop-app",
+    "sleepycathey"
+  ],
   "author": "Nikhil Yadav (yadavnikhil03)",
   "type": "module",
   "scripts": {
@@ -19,7 +29,6 @@
     "@tauri-apps/plugin-opener": "^2",
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.10.1",
-    "lucide-react": "^1.16.0",
     "motion": "^12.40.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

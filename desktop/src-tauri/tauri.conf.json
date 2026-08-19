@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' cozy: http://cozy.localhost blob: data: https:; connect-src 'self' https://cdn.jsdelivr.net https://cozypixels.eu.org https://cozy-pixels.onrender.com; script-src 'self';"
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' cozy: http://cozy.localhost blob: data: https://cdn.jsdelivr.net https://raw.githubusercontent.com https://cozy-pixels.onrender.com; connect-src 'self' https://cdn.jsdelivr.net https://cozypixels.eu.org https://cozy-pixels.onrender.com; script-src 'self';"
     }
   },
   "plugins": {
