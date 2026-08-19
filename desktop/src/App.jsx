@@ -35,6 +35,13 @@ export default function App() {
   const [customWallpapers, setCustomWallpapers] = useState([]);
   const allWallpapers = useMemo(() => [...customWallpapers, ...wallpapers], [customWallpapers, wallpapers]);
   const categories = useMemo(() => [...new Set(allWallpapers.map(w => w.category))], [allWallpapers]);
+  const categoryCounts = useMemo(() => {
+    const counts = { All: allWallpapers.length };
+    allWallpapers.forEach(w => {
+      counts[w.category] = (counts[w.category] || 0) + 1;
+    });
+    return counts;
+  }, [allWallpapers]);
   const [category, setCategory] = useState('All');
   const [search, setSearch] = useState('');
   const [fetchError, setFetchError] = useState(false);
