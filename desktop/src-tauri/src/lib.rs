@@ -11,9 +11,16 @@ fn image_cache() -> &'static Mutex<HashMap<String, Vec<u8>>> {
     CACHE.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
+const APP_USER_AGENT: &str = "CozyPixels-Desktop/1.0 (https://cozy-pixels.vercel.app)";
+
 fn http_client() -> &'static reqwest::Client {
     static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
-    CLIENT.get_or_init(|| reqwest::Client::new())
+    CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .user_agent(APP_USER_AGENT)
+            .build()
+            .expect("Failed to build HTTP client")
+    })
 }
 
 static ROTATE_RUNNING: AtomicBool = AtomicBool::new(false);
@@ -56,8 +63,12 @@ async fn set_wallpaper(url: String) -> Result<String, String> {
     let path_clone = temp_path.clone();
 
     tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let client = reqwest::blocking::Client::builder()
+            .user_agent(APP_USER_AGENT)
+            .build()
+            .map_err(|e| format!("Client build failed: {}", e))?;
         let response =
-            reqwest::blocking::get(&url_clone).map_err(|e| format!("Download failed: {}", e))?;
+            client.get(&url_clone).send().map_err(|e| format!("Download failed: {}", e))?;
         let bytes = response
             .bytes()
             .map_err(|e| format!("Read failed: {}", e))?;
@@ -476,7 +487,7 @@ pub fn run() {
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "quit" => {
-                        std::process::exit(0);
+                        app.exit(0);
                     }
                     "show" => {
                         if let Some(window) = app.get_webview_window("main") {
