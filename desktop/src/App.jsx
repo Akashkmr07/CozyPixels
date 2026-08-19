@@ -609,7 +609,7 @@ export default function App() {
           <button className="nav__item" onClick={handleManualUpdateCheck} title={updatesEnabled ? 'Check for updates' : 'Open a mock update flow for testing'} style={{ marginTop: '4px' }}>
             <LuDownload size={15} />
             <span>Check for updates</span>
-            <span className="nav__badge" style={{ fontSize: '10px', opacity: 0.5 }}>v{APP_VERSION}</span>
+            <span className="nav__badge" style={{ fontSize: '10px', opacity: 0.5 }}>v{appVersion}</span>
           </button>
         </div>
       </aside>
