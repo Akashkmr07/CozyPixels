@@ -326,8 +326,8 @@ export default function App() {
 
   useEffect(() => {
     const uNext = listen('tray-next-wallpaper', () => {
-      if (wallpapers.length > 0) {
-        const randomWallpaper = wallpapers[Math.floor(Math.random() * wallpapers.length)];
+      if (filtered.length > 0) {
+        const randomWallpaper = filtered[Math.floor(Math.random() * filtered.length)];
         handleSetWallpaper(randomWallpaper);
       }
     });
@@ -338,7 +338,7 @@ export default function App() {
       uNext.then(fn => fn()); 
       uToggle.then(fn => fn()); 
     };
-  }, [wallpapers, autoRotate]);
+  }, [filtered, autoRotate]);
 
 
 
