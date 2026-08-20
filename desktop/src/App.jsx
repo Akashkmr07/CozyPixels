@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef, useDeferredValue, useMemo } from 'react';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
 import { enable, disable } from '@tauri-apps/plugin-autostart';
 import { check } from '@tauri-apps/plugin-updater';
-import { open } from '@tauri-apps/plugin-dialog';
+import { confirm, open } from '@tauri-apps/plugin-dialog';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from './useFocusTrap.js';
@@ -12,9 +13,9 @@ import {
   LuRefreshCw, LuCheck, LuX, LuTrash,
   LuMonitor, LuSparkles, LuSun, LuMoon,
   LuChevronDown, LuChevronUp, LuChevronLeft, LuChevronRight,
-  LuFolderPlus, LuTriangleAlert
+  LuFolderPlus, LuTriangleAlert, LuStar, LuMousePointerClick
 } from 'react-icons/lu';
-import './App.css';
+import './App.css?v=2';
 import { SplashScreen } from './components/SplashScreen.jsx';
 import { Toast } from './components/Toast.jsx';
 import { WallpaperCard } from './components/WallpaperCard.jsx';
@@ -35,13 +36,17 @@ export default function App() {
   const [customWallpapers, setCustomWallpapers] = useState([]);
   const allWallpapers = useMemo(() => [...customWallpapers, ...wallpapers], [customWallpapers, wallpapers]);
   const categories = useMemo(() => [...new Set(allWallpapers.map(w => w.category))], [allWallpapers]);
+  const [favorites, setFavorites] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cozy_favorites')) || []; } catch { return []; }
+  });
+
   const categoryCounts = useMemo(() => {
-    const counts = { All: allWallpapers.length };
+    const counts = { All: allWallpapers.length, Favorites: favorites.length };
     allWallpapers.forEach(w => {
       counts[w.category] = (counts[w.category] || 0) + 1;
     });
     return counts;
-  }, [allWallpapers]);
+  }, [allWallpapers, favorites]);
   const [category, setCategory] = useState('All');
   const [search, setSearch] = useState('');
   const [fetchError, setFetchError] = useState(false);
@@ -434,14 +439,68 @@ export default function App() {
   // allWallpapers and categories moved up
 
   const filtered = useMemo(() => {
-    return allWallpapers
-      .filter(w => category === 'All' || w.category === category)
+    let base = allWallpapers;
+    if (category === 'Favorites') {
+      base = allWallpapers.filter(w => favorites.includes(w.path));
+    } else if (category !== 'All') {
+      base = allWallpapers.filter(w => w.category === category);
+    }
+    return base
       .filter(w => {
         if (!deferredSearch.trim()) return true;
         const q = deferredSearch.toLowerCase();
         return w.name.toLowerCase().includes(q) || w.category.toLowerCase().includes(q);
       });
-  }, [allWallpapers, category, deferredSearch]);
+  }, [allWallpapers, category, deferredSearch, favorites]);
+
+  const toggleSelection = useCallback((wallpaper) => {
+    setSelectedWallpapers(prev => 
+      prev.includes(wallpaper.path) 
+        ? prev.filter(p => p !== wallpaper.path)
+        : [...prev, wallpaper.path]
+    );
+  }, []);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedWallpapers.length === 0) return;
+    const confirmed = await confirm(`Are you sure you want to permanently delete ${selectedWallpapers.length} wallpapers from your computer?`, { title: 'Delete Wallpapers', kind: 'warning' });
+    if (confirmed) {
+      try {
+        for (const p of selectedWallpapers) {
+          await invoke('delete_local_wallpaper', { path: p });
+        }
+        setCustomWallpapers(prev => prev.filter(w => !selectedWallpapers.includes(w.path)));
+        addToast(`Deleted ${selectedWallpapers.length} wallpapers`, 'success');
+        setSelectionMode(false);
+        setSelectedWallpapers([]);
+      } catch (err) {
+        addToast(`${err}`, 'error');
+      }
+    }
+  }, [selectedWallpapers, addToast]);
+
+  const handleDeleteLocal = useCallback(async (wallpaper) => {
+    try {
+      const confirmed = await confirm(`Are you sure you want to permanently delete "${wallpaper.name}" from your computer?`, { title: 'Delete Wallpaper', kind: 'warning' });
+      if (confirmed) {
+        await invoke('delete_local_wallpaper', { path: wallpaper.path });
+        setCustomWallpapers(prev => prev.filter(w => w.path !== wallpaper.path));
+        addToast(`Deleted ${wallpaper.name}`, 'success');
+      }
+    } catch (err) {
+      console.error(err);
+      addToast(`Error: ${err}`, 'error');
+    }
+  }, [addToast]);
+
+  const toggleFavorite = useCallback((wallpaper) => {
+    setFavorites(prev => {
+      const isFav = prev.includes(wallpaper.path);
+      const newFavs = isFav ? prev.filter(p => p !== wallpaper.path) : [...prev, wallpaper.path];
+      localStorage.setItem('cozy_favorites', JSON.stringify(newFavs));
+      return newFavs;
+    });
+  }, []);
 
   useEffect(() => {
     const uNext = listen('tray-next-wallpaper', () => {
@@ -492,10 +551,21 @@ export default function App() {
         </div>
 
         <nav className="nav">
-          <button className={`nav__item ${category === 'All' ? 'active' : ''}`} onClick={() => setCategory('All')}>
+          <button 
+            className={`nav__item ${category === 'All' ? 'active' : ''}`} 
+            onClick={() => setCategory('All')}
+          >
             <LuLayoutGrid size={15} />
-            <span>All wallpapers</span>
+            <span>All Wallpapers</span>
             <span className="nav__badge">{categoryCounts.All}</span>
+          </button>
+          <button 
+            className={`nav__item ${category === 'Favorites' ? 'active' : ''}`} 
+            onClick={() => setCategory('Favorites')}
+          >
+            <LuStar size={15} />
+            <span>Favorites</span>
+            <span className="nav__badge">{categoryCounts.Favorites}</span>
           </button>
           {categories.map(cat => {
             const isCustom = cat.startsWith('Local:');
@@ -628,8 +698,27 @@ export default function App() {
               onChange={e => setSearch(e.target.value)}
               aria-label="Search wallpapers"
             />
+            {search && (
+              <button className="search__clear" onClick={() => setSearch('')} aria-label="Clear search">
+                <LuX size={14} />
+              </button>
+            )}
           </div>
           <div className="topbar__right">
+            {category.startsWith('Local:') && (
+              selectionMode ? (
+                <>
+                  <button className="topbar__btn" onClick={() => { setSelectionMode(false); setSelectedWallpapers([]); }}>Cancel</button>
+                  <button className="topbar__btn topbar__btn--danger" onClick={handleBulkDelete} disabled={selectedWallpapers.length === 0}>
+                    <LuTrash size={15} /> Delete ({selectedWallpapers.length})
+                  </button>
+                </>
+              ) : (
+                <button className="topbar__btn" onClick={() => setSelectionMode(true)}>
+                  <LuMousePointerClick size={15} /> Select
+                </button>
+              )
+            )}
             <span className="topbar__count">{category === 'All' ? '' : category + ' — '}{filtered.length} curated</span>
           </div>
         </div>
@@ -643,6 +732,12 @@ export default function App() {
               onPreview={handlePreview}
               onDownload={handleDownload}
               setting={settingWallpaper === w.path}
+              isFavorite={favorites.includes(w.path)}
+              onToggleFavorite={toggleFavorite}
+              onDelete={handleDeleteLocal}
+              selectionMode={selectionMode}
+              isSelected={selectedWallpapers.includes(w.path)}
+              onToggleSelect={toggleSelection}
             />
           ))}
           {filtered.length > displayCount && (
