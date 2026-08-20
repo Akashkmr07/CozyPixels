@@ -504,6 +504,7 @@ pub fn run() {
                     _ => {}
                 })
                 .icon(app.default_window_icon().cloned().expect("No default window icon configured - check tauri.conf.json"))
+                .tooltip("CozyPixels")
                 .build(app)?;
 
             // Hide window on boot if started via autostart
