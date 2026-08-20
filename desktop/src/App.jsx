@@ -324,21 +324,7 @@ export default function App() {
     return () => { u.then(fn => fn()); };
   }, [addToast]);
 
-  useEffect(() => {
-    const uNext = listen('tray-next-wallpaper', () => {
-      if (filtered.length > 0) {
-        const randomWallpaper = filtered[Math.floor(Math.random() * filtered.length)];
-        handleSetWallpaper(randomWallpaper);
-      }
-    });
-    const uToggle = listen('tray-toggle-rotate', () => {
-      setAutoRotate(prev => !prev);
-    });
-    return () => { 
-      uNext.then(fn => fn()); 
-      uToggle.then(fn => fn()); 
-    };
-  }, [filtered, autoRotate]);
+
 
 
 
@@ -456,6 +442,22 @@ export default function App() {
         return w.name.toLowerCase().includes(q) || w.category.toLowerCase().includes(q);
       });
   }, [allWallpapers, category, deferredSearch]);
+
+  useEffect(() => {
+    const uNext = listen('tray-next-wallpaper', () => {
+      if (filtered.length > 0) {
+        const randomWallpaper = filtered[Math.floor(Math.random() * filtered.length)];
+        handleSetWallpaper(randomWallpaper);
+      }
+    });
+    const uToggle = listen('tray-toggle-rotate', () => {
+      setAutoRotate(prev => !prev);
+    });
+    return () => { 
+      uNext.then(fn => fn()); 
+      uToggle.then(fn => fn()); 
+    };
+  }, [filtered, autoRotate]);
 
   useEffect(() => {
     document.title = `CozyPixels — ${filtered.length} Wallpaper${filtered.length !== 1 ? 's' : ''}`;

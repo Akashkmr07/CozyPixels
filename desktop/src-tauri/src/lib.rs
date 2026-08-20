@@ -1,14 +1,15 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use lru::LruCache;
+use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::sync::OnceLock;
 use std::time::Duration;
 use tauri::Emitter;
 
-fn image_cache() -> &'static Mutex<HashMap<String, Vec<u8>>> {
-    static CACHE: OnceLock<Mutex<HashMap<String, Vec<u8>>>> = OnceLock::new();
-    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+fn image_cache() -> &'static Mutex<LruCache<String, Vec<u8>>> {
+    static CACHE: OnceLock<Mutex<LruCache<String, Vec<u8>>>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(LruCache::new(NonZeroUsize::new(100).unwrap())))
 }
 
 const APP_USER_AGENT: &str = "CozyPixels-Desktop/1.0 (https://cozy-pixels.vercel.app)";
@@ -62,21 +63,18 @@ async fn set_wallpaper(url: String) -> Result<String, String> {
     let url_clone = url.clone();
     let path_clone = temp_path.clone();
 
-    tokio::task::spawn_blocking(move || -> Result<(), String> {
-        let client = reqwest::blocking::Client::builder()
-            .user_agent(APP_USER_AGENT)
-            .build()
-            .map_err(|e| format!("Client build failed: {}", e))?;
-        let response =
-            client.get(&url_clone).send().map_err(|e| format!("Download failed: {}", e))?;
-        let bytes = response
-            .bytes()
-            .map_err(|e| format!("Read failed: {}", e))?;
-        std::fs::write(&path_clone, &bytes).map_err(|e| format!("Write failed: {}", e))?;
-        Ok(())
-    })
-    .await
-    .map_err(|e| format!("Task error: {}", e))??;
+    let response = http_client()
+        .get(&url_clone)
+        .send()
+        .await
+        .map_err(|e| format!("Download failed: {}", e))?;
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Read failed: {}", e))?;
+    tokio::fs::write(&path_clone, &bytes)
+        .await
+        .map_err(|e| format!("Write failed: {}", e))?;
 
     let path_str = temp_path.to_str().ok_or("Invalid temp path")?.to_string();
 
@@ -169,12 +167,9 @@ async fn set_lock_screen(url: String) -> Result<String, String> {
             let temp_path = temp_dir.join(format!("cozypixels_lock_{}", filename));
             let path_clone = temp_path.clone();
             
-            tokio::task::spawn_blocking(move || -> Result<(), String> {
-                let response = reqwest::blocking::get(&url).map_err(|e| format!("Download failed: {}", e))?;
-                let bytes = response.bytes().map_err(|e| format!("Read failed: {}", e))?;
-                std::fs::write(&path_clone, &bytes).map_err(|e| format!("Write failed: {}", e))?;
-                Ok(())
-            }).await.map_err(|e| format!("Task error: {}", e))??;
+            let response = http_client().get(&url).send().await.map_err(|e| format!("Download failed: {}", e))?;
+            let bytes = response.bytes().await.map_err(|e| format!("Read failed: {}", e))?;
+            tokio::fs::write(&path_clone, &bytes).await.map_err(|e| format!("Write failed: {}", e))?;
             
             temp_path.to_str().ok_or("Invalid temp path")?.to_string()
         };
@@ -341,17 +336,11 @@ use tauri::{
 #[tauri::command]
 async fn fetch_image_bytes(url: String) -> Result<Vec<u8>, String> {
     {
-        let cache = image_cache().lock().unwrap();
+        let mut cache = image_cache().lock().unwrap();
         if let Some(bytes) = cache.get(&url) {
             return Ok(bytes.clone());
         }
     }
-
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(15))
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
-        .build()
-        .map_err(|e| e.to_string())?;
 
     let referer = if let Ok(parsed) = url::Url::parse(&url) {
         format!("{}://{}/", parsed.scheme(), parsed.host_str().unwrap_or(""))
@@ -359,7 +348,7 @@ async fn fetch_image_bytes(url: String) -> Result<Vec<u8>, String> {
         String::new()
     };
 
-    let mut req = client.get(&url)
+    let mut req = http_client().get(&url)
         .header("Accept", "image/avif,image/webp,image/apng,image/png,image/jpeg,*/*;q=0.8");
 
     if !referer.is_empty() {
@@ -376,10 +365,7 @@ async fn fetch_image_bytes(url: String) -> Result<Vec<u8>, String> {
 
     {
         let mut cache = image_cache().lock().unwrap();
-        if cache.len() > 100 {
-            cache.clear();
-        }
-        cache.insert(url, bytes.clone());
+        cache.put(url, bytes.clone());
     }
 
     Ok(bytes)
