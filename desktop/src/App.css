@@ -510,10 +510,7 @@ body {
   border: none;
   transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-emphasized),
               box-shadow var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-emphasized);
-  will-change: transform, box-shadow;
   box-shadow: var(--elevation-1);
-  content-visibility: auto;
-  contain-intrinsic-size: 200px;
   contain: layout style paint;
 }
 

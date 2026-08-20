@@ -8,7 +8,6 @@ const STATIC_URL = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/fr
 export const WallpaperCard = React.memo(({ wallpaper, onSetWallpaper, onPreview, onDownload, setting }) => {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
-  const [imgSrc, setImgSrc] = useState(null);
   const cardRef = useRef(null);
 
   const baseImageUrl = useMemo(() => 
@@ -22,28 +21,10 @@ export const WallpaperCard = React.memo(({ wallpaper, onSetWallpaper, onPreview,
   const [retrySrc, setRetrySrc] = useState(null);
 
   useEffect(() => {
-    let isMounted = true;
-    let currentBlobUrl = null;
-
-    if (baseImageUrl.startsWith('http')) {
-      const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-          observer.disconnect();
-          setImgSrc(baseImageUrl);
-        }
-      }, { rootMargin: '300px' });
-
-      if (cardRef.current) observer.observe(cardRef.current);
-
-      return () => {
-        isMounted = false;
-        observer.disconnect();
-        if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
-      };
-    } else {
-      setImgSrc(baseImageUrl);
-    }
-  }, [baseImageUrl]);
+    return () => {
+      if (retrySrc) URL.revokeObjectURL(retrySrc);
+    };
+  }, [retrySrc]);
 
   useEffect(() => {
     if (!error || !baseImageUrl.startsWith('http') || retrySrc) return;
@@ -72,8 +53,8 @@ export const WallpaperCard = React.memo(({ wallpaper, onSetWallpaper, onPreview,
       {error && !retrySrc ? (
         <div className="card__error"><LuImage size={22} /><span>Failed to load</span></div>
       ) : (
-        imgSrc && <img
-          src={retrySrc || imgSrc}
+        <img
+          src={retrySrc || baseImageUrl}
           alt={displayName}
           onLoad={() => setLoaded(true)}
           onError={() => !retrySrc && setError(true)}
