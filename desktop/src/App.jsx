@@ -52,6 +52,7 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [fetchError, setFetchError] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [defaultDownloadPath, setDefaultDownloadPath] = useState(() => localStorage.getItem('cozy_download_path') || '');
   const [showSplash, setShowSplash] = useState(true);
   const splashStartRef = useRef(Date.now());
   const fetchAbortRef = useRef(null);
@@ -163,6 +164,14 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [fetching]);
+
+  useEffect(() => {
+    if (defaultDownloadPath) {
+      localStorage.setItem('cozy_download_path', defaultDownloadPath);
+    } else {
+      localStorage.removeItem('cozy_download_path');
+    }
+  }, [defaultDownloadPath]);
 
   useEffect(() => {
     localStorage.setItem('cozy_localFolders', JSON.stringify(localFolders));
@@ -384,42 +393,55 @@ export default function App() {
     const url = wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://') 
       ? wallpaper.path 
       : `${STATIC_URL}${wallpaper.path}`;
-    const name = wallpaper.name || 'wallpaper';
-
-    let extension = wallpaper.path.split('.').pop()?.toLowerCase();
-    if (extension && extension.includes('?')) extension = extension.split('?')[0];
-    if (!['jpg', 'jpeg', 'png', 'webp', 'avif'].includes(extension)) {
-      extension = 'jpg';
-    }
-    const filename = `${name}.${extension}`;
-
-    try {
-      const filePath = await save({
-        defaultPath: filename,
-        filters: [{
-          name: 'Image',
-          extensions: [extension]
-        }]
-      });
-
-      if (!filePath) return;
-
-      addToast('Downloading wallpaper...', 'info');
-
-      let bytes;
-      if (wallpaper.realPath) {
-        bytes = await invoke('read_file_bytes', { path: wallpaper.realPath });
-      } else {
-        bytes = await invoke('fetch_image_bytes', { url });
+      let filename = wallpaper.name || 'wallpaper';
+  
+      let extension = wallpaper.path.split('.').pop()?.toLowerCase();
+      if (extension && extension.includes('?')) extension = extension.split('?')[0];
+      if (!['jpg', 'jpeg', 'png', 'webp', 'avif'].includes(extension)) {
+        extension = 'jpg';
       }
       
-      await invoke('save_file_bytes', { path: filePath, bytes });
+      const filenameExt = filename.split('.').pop()?.toLowerCase();
+      if (!['jpg', 'jpeg', 'png', 'webp', 'avif'].includes(filenameExt)) {
+        filename = `${filename}.${extension}`;
+      }
+
+    try {
+        let filePath;
+        
+        if (defaultDownloadPath) {
+          const separator = defaultDownloadPath.includes('\\') ? '\\' : '/';
+          filePath = defaultDownloadPath.endsWith(separator) ? `${defaultDownloadPath}${filename}` : `${defaultDownloadPath}${separator}${filename}`;
+        } else {
+          filePath = await save({
+            defaultPath: filename,
+            filters: [{
+              name: 'Image',
+              extensions: [extension]
+            }]
+          });
+    
+          if (!filePath) return;
+    
+          if (!filePath.toLowerCase().endsWith('.' + extension)) {
+            filePath = filePath + '.' + extension;
+          }
+        }
+  
+      addToast('Downloading wallpaper...', 'info');
+
+      if (wallpaper.realPath) {
+        let bytes = await invoke('read_file_bytes', { path: wallpaper.realPath });
+      } else {
+        await invoke('download_and_save_wallpaper', { url, path: filePath });
+      }
+      
       addToast(`Saved ${filename}`, 'success');
     } catch (err) {
       console.error(err);
-      addToast('Failed to save wallpaper', 'error');
+      addToast(`Error: ${err.message || err}`, 'error');
     }
-  }, [addToast]);
+  }, [addToast, defaultDownloadPath]);
 
   const handleToggleRotate = useCallback(async () => {
     if (autoRotate) {
@@ -587,7 +609,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <SplashScreen visible={showSplash} />
+      
       <aside className="sidebar">
         <div className="logo">
           {!showSplash && (
@@ -689,6 +711,33 @@ export default function App() {
               <div className={`premium-toggle ${dark ? 'on' : ''}`} style={{ transform: 'scale(0.85)', transformOrigin: 'right', pointerEvents: 'none' }} role="switch" aria-checked={dark} aria-label="Toggle dark mode">
                 <div className="premium-toggle__thumb" />
               </div>
+            </div>
+
+            <div className="panel-row" onClick={async () => {
+              const selected = await open({ directory: true, multiple: false });
+              if (selected) {
+                setDefaultDownloadPath(selected);
+                addToast('Download folder set', 'success');
+              }
+            }} style={{ cursor: 'pointer' }}>
+              <div className="panel-icon-wrap" style={{ width: '32px', height: '32px' }}>
+                <LuDownload size={14} />
+              </div>
+              <div className="panel-text">
+                <span className="panel-title">Download Folder</span>
+                <span className="panel-desc" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>
+                  {defaultDownloadPath || 'Ask every time'}
+                </span>
+              </div>
+              {defaultDownloadPath && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setDefaultDownloadPath(''); }}
+                  style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-outline)', cursor: 'pointer', padding: '4px' }}
+                  title="Clear default folder"
+                >
+                  <LuX size={14} />
+                </button>
+              )}
             </div>
 
             <div className="panel-row" onClick={() => setRotateExpanded(!rotateExpanded)} style={{ cursor: 'pointer' }}>
@@ -822,7 +871,7 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      <SplashScreen show={showSplash} onDone={() => setShowSplash(false)} />
+      
       
       <ConfirmModal 
         show={confirmState.show}
@@ -858,3 +907,7 @@ export default function App() {
     </div>
   );
 }
+
+
+
+

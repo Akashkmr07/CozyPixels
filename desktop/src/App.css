@@ -1339,6 +1339,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 99999;
+  pointer-events: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1495,3 +1496,4 @@ body {
   background: var(--md-sys-color-error);
   filter: brightness(1.1);
 }
+

@@ -382,7 +382,14 @@ async fn delete_local_wallpaper(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn save_file_bytes(path: String, bytes: Vec<u8>) -> Result<(), String> {
+async fn download_and_save_wallpaper(url: String, path: String) -> Result<(), String> {
+    let bytes = reqwest::get(&url)
+        .await
+        .map_err(|e| format!("Failed to download: {}", e))?
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read bytes: {}", e))?
+        .to_vec();
     std::fs::write(&path, bytes).map_err(|e| format!("Failed to write file: {}", e))
 }
 
@@ -528,7 +535,7 @@ pub fn run() {
             fetch_image_bytes,
             read_file_bytes,
             delete_local_wallpaper,
-            save_file_bytes,
+            download_and_save_wallpaper,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
