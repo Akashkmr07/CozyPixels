@@ -795,9 +795,26 @@ export default function App() {
             <div ref={loaderRef} style={{ width: '100%', height: '40px', gridColumn: '1 / -1' }} />
           )}
         </div>
+        <AnimatePresence mode="wait">
+          {preview && (
+            <Lightbox
+              key={preview.path}
+              wallpaper={preview}
+              onClose={() => setPreview(null)}
+              onSetWallpaper={handleSetWallpaper}
+              onSetLockScreen={handleSetLockScreen}
+              onDownload={handleDownload}
+              setting={settingWallpaper === preview?.path}
+              settingLock={settingLockScreen === preview?.path}
+              onNext={handleNext}
+              onPrev={handlePrev}
+              hasNext={hasNext}
+              hasPrev={hasPrev}
+            />
+          )}
+        </AnimatePresence>
       </main>
 
-      <Lightbox current={preview} onClose={() => setPreview(null)} />
       <SplashScreen show={showSplash} onDone={() => setShowSplash(false)} />
       
       <ConfirmModal 
