@@ -194,6 +194,9 @@ const Hero = () => (
           <span className="hero-title-line">Your <span className="hero-title-accent">Serene</span></span>
           <span className="hero-title-line">Space Starts Here</span>
         </h1>
+        <h2 className="hero-seo-sub">
+          Free 4K Minimalist Wallpapers for PC and Mobile
+        </h2>
 
         <m.p
           className="hero-subtitle-split"
@@ -734,6 +737,12 @@ const Footer = () => (
       <a href="/" className="logo-text" style={{ fontSize: '2rem' }}>CozyPixels</a>
       <p className="footer-tagline">
         Curating the most serene 4K wallpapers for your aesthetic workspace.
+      </p>
+    </div>
+    
+    <div className="footer-seo-block">
+      <p>
+        CozyPixels is your ultimate destination for high-resolution <strong>4K wallpapers for PC</strong>, mobile, and tablets. Explore our carefully curated collections of <strong>minimalist desktop backgrounds</strong>, <strong>aesthetic mobile wallpapers</strong>, and exclusive developer themes like Catppuccin, Nord, and One Dark. Whether you are searching for a serene landscape for your Windows setup, a sleek dark mode wallpaper for macOS, or an aesthetic lock screen for your iPhone or Android device, CozyPixels provides the perfect visual sanctuary.
       </p>
     </div>
     
