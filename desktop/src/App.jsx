@@ -25,7 +25,7 @@ import { ConfirmModal } from './components/ConfirmModal.jsx';
 import { getVersion } from '@tauri-apps/api/app';
 
 
-const API_URL = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public/wallpapers.json';
+const API_URL = 'https://raw.githubusercontent.com/yadavnikhil03/CozyPixels/main/frontend/public/wallpapers.json';
 const STATIC_URL = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public';
 
 export default function App() {
