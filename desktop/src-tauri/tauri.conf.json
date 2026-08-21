@@ -1,54 +1,56 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
-  "productName": "CozyPixels",
-  "version": "1.2.0",
-  "identifier": "com.cozypixels.desktop",
-  "build": {
-    "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
-    "frontendDist": "../dist"
-  },
-  "app": {
-    "windows": [
-      {
-        "title": "CozyPixels",
-        "width": 1280,
-        "height": 820,
-        "minWidth": 960,
-        "minHeight": 600,
-        "decorations": true,
-        "center": true
-      }
-    ],
-    "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' cozy: http://cozy.localhost blob: data: https://cdn.jsdelivr.net https://raw.githubusercontent.com https://cozy-pixels.onrender.com; connect-src 'self' https://cdn.jsdelivr.net https://cozypixels.eu.org https://cozy-pixels.onrender.com; script-src 'self';"
-    }
-  },
-  "plugins": {
-    "updater": {
-      "endpoints": [
-        "https://github.com/yadavnikhil03/CozyPixels/releases/latest/download/latest.json"
-      ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNBOUEzNThCQjU4QThBREYKUldUZmlvcTFpeldhT3FmYjVWUklrM1BZVVlvTUw4YzFqdzJINjRTamZxcWVnaXB0UENIUitOWTEK"
-    }
-  },
-  "bundle": {
-    "active": true,
-    "createUpdaterArtifacts": true,
-    "targets": "all",
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ],
-    "resources": [],
-    "windows": {
-      "nsis": {
-        "installerHooks": "./windows/hooks.nsh"
-      }
-    }
-  }
+    "$schema":  "https://schema.tauri.app/config/2",
+    "productName":  "CozyPixels",
+    "version":  "1.2.0",
+    "identifier":  "com.cozypixels.desktop",
+    "build":  {
+                  "beforeDevCommand":  "npm run dev",
+                  "devUrl":  "http://localhost:1420",
+                  "beforeBuildCommand":  "npm run build",
+                  "frontendDist":  "../dist"
+              },
+    "app":  {
+                "windows":  [
+                                {
+                                    "title":  "CozyPixels",
+                                    "width":  1280,
+                                    "height":  820,
+                                    "minWidth":  960,
+                                    "minHeight":  600,
+                                    "decorations":  true,
+                                    "center":  true
+                                }
+                            ],
+                "security":  {
+                                 "csp":  "default-src \u0027self\u0027; style-src \u0027self\u0027 \u0027unsafe-inline\u0027 https://fonts.googleapis.com; font-src \u0027self\u0027 https://fonts.gstatic.com; img-src \u0027self\u0027 cozy: http://cozy.localhost blob: data: https://cdn.jsdelivr.net https://raw.githubusercontent.com https://cozy-pixels.onrender.com; connect-src \u0027self\u0027 https://cdn.jsdelivr.net https://cozypixels.eu.org https://cozy-pixels.onrender.com; script-src \u0027self\u0027;"
+                             }
+            },
+    "plugins":  {
+                    "updater":  {
+                                    "endpoints":  [
+                                                      "https://github.com/yadavnikhil03/CozyPixels/releases/latest/download/latest.json"
+                                                  ],
+                                    "pubkey":  "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNBOUEzNThCQjU4QThBREYKUldUZmlvcTFpeldhT3FmYjVWUklrM1BZVVlvTUw4YzFqdzJINjRTamZxcWVnaXB0UENIUitOWTEK"
+                                }
+                },
+    "bundle":  {
+                   "active":  true,
+                   "createUpdaterArtifacts":  true,
+                   "targets":  "all",
+                   "icon":  [
+                                "icons/32x32.png",
+                                "icons/128x128.png",
+                                "icons/128x128@2x.png",
+                                "icons/icon.icns",
+                                "icons/icon.ico"
+                            ],
+                   "resources":  [
+
+                                 ],
+                   "windows":  {
+                                   "nsis":  {
+                                                "installerHooks":  "./windows/hooks.nsh"
+                                            }
+                               }
+               }
 }
