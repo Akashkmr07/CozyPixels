@@ -381,6 +381,11 @@ async fn delete_local_wallpaper(path: String) -> Result<(), String> {
     std::fs::remove_file(&path).map_err(|e| format!("Failed to delete file: {}", e))
 }
 
+#[tauri::command]
+async fn save_file_bytes(path: String, bytes: Vec<u8>) -> Result<(), String> {
+    std::fs::write(&path, bytes).map_err(|e| format!("Failed to write file: {}", e))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -523,6 +528,7 @@ pub fn run() {
             fetch_image_bytes,
             read_file_bytes,
             delete_local_wallpaper,
+            save_file_bytes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

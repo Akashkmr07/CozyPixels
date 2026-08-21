@@ -4,7 +4,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
 import { enable, disable } from '@tauri-apps/plugin-autostart';
 import { check } from '@tauri-apps/plugin-updater';
-import { open } from '@tauri-apps/plugin-dialog';
+import { open, save } from '@tauri-apps/plugin-dialog';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from './useFocusTrap.js';
@@ -394,6 +394,18 @@ export default function App() {
     const filename = `${name}.${extension}`;
 
     try {
+      const filePath = await save({
+        defaultPath: filename,
+        filters: [{
+          name: 'Image',
+          extensions: [extension]
+        }]
+      });
+
+      if (!filePath) return;
+
+      addToast('Downloading wallpaper...', 'info');
+
       let bytes;
       if (wallpaper.realPath) {
         bytes = await invoke('read_file_bytes', { path: wallpaper.realPath });
@@ -401,25 +413,11 @@ export default function App() {
         bytes = await invoke('fetch_image_bytes', { url });
       }
       
-      const mimeType = extension === 'png' ? 'image/png' : extension === 'webp' ? 'image/webp' : 'image/jpeg';
-      const blob = new Blob([new Uint8Array(bytes)], { type: mimeType });
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-      addToast(`Downloaded ${filename}`, 'success');
+      await invoke('save_file_bytes', { path: filePath, bytes });
+      addToast(`Saved ${filename}`, 'success');
     } catch (err) {
-      // Fallback: try direct download via anchor
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      console.error(err);
+      addToast('Failed to save wallpaper', 'error');
     }
   }, [addToast]);
 
