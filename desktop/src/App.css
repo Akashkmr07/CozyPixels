@@ -79,6 +79,7 @@ body {
   gap: 4px;
   transition: background var(--md-sys-motion-duration-medium);
   z-index: 100;
+  min-height: 0;
 }
 
 .logo {
@@ -96,7 +97,14 @@ body {
   flex-direction: column;
   gap: 4px;
   flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
 }
+
+.nav::-webkit-scrollbar { width: 4px; }
+.nav::-webkit-scrollbar-track { background: transparent; }
+.nav::-webkit-scrollbar-thumb { background: var(--md-sys-color-outline-variant); border-radius: 2px; }
 
 .nav__item {
   display: flex;
@@ -133,14 +141,22 @@ body {
 
 .nav__badge {
   margin-left: auto;
-  font-size: 12px;
-  font-weight: 700;
-  font-family: 'Geist', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
   color: var(--md-sys-color-on-surface-variant);
+  background: var(--md-sys-color-surface-container-highest);
+  padding: 4px 8px;
+  border-radius: 12px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .nav__item.active .nav__badge {
   color: var(--md-sys-color-on-secondary-container);
+  background: color-mix(in srgb, var(--md-sys-color-on-secondary-container) 15%, transparent);
 }
 
 .rotate-pill {

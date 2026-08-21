@@ -4,7 +4,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
 import { enable, disable } from '@tauri-apps/plugin-autostart';
 import { check } from '@tauri-apps/plugin-updater';
-import { confirm, open } from '@tauri-apps/plugin-dialog';
+import { open } from '@tauri-apps/plugin-dialog';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from './useFocusTrap.js';
@@ -21,6 +21,7 @@ import { Toast } from './components/Toast.jsx';
 import { WallpaperCard } from './components/WallpaperCard.jsx';
 import { Lightbox } from './components/Lightbox.jsx';
 import { UpdateModal } from './components/UpdateModal.jsx';
+import { ConfirmModal } from './components/ConfirmModal.jsx';
 import { getVersion } from '@tauri-apps/api/app';
 
 
@@ -59,6 +60,14 @@ export default function App() {
   const [preview, setPreview] = useState(null);
   const [settingWallpaper, setSettingWallpaper] = useState(null);
   const [settingLockScreen, setSettingLockScreen] = useState(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedWallpapers, setSelectedWallpapers] = useState([]);
+  const [confirmState, setConfirmState] = useState({ show: false, message: '', title: '', resolve: null });
+  const customConfirm = useCallback((message, options) => {
+    return new Promise(resolve => {
+      setConfirmState({ show: true, message, title: options?.title || 'Confirm', resolve });
+    });
+  }, []);
   const [dark, setDark] = useState(() => window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
   const [toast, setToast] = useState(null);
   const toastQueue = useRef([]);
@@ -150,9 +159,7 @@ export default function App() {
 
   useEffect(() => {
     if (!fetching) {
-      const elapsed = Date.now() - splashStartRef.current;
-      const remaining = Math.max(0, 2700 - elapsed);
-      const timer = setTimeout(() => setShowSplash(false), remaining);
+      const timer = setTimeout(() => setShowSplash(false), 150);
       return () => clearTimeout(timer);
     }
   }, [fetching]);
@@ -161,26 +168,34 @@ export default function App() {
     localStorage.setItem('cozy_localFolders', JSON.stringify(localFolders));
     let cancelled = false;
     async function scanLocal() {
-       let arr = [];
-       for (let folder of localFolders) {
-           try {
-              let paths = await invoke('scan_local_directory', { path: folder });
-              if (cancelled) return;
-              arr.push(...paths.map(p => {
-                 const pClean = p.replace(/\\/g, '/');
-                 const localUrl = convertFileSrc(pClean, 'cozy');
-                 return {
-                   name: pClean.split('/').pop(),
-                   path: localUrl,
-                   realPath: pClean,
-                   category: `Local: ${folder.split('\\').pop()?.split('/').pop()}`,
-                   downloadPath: localUrl
-                 };
-              }));
-           } catch (e) { console.error('Local scan error:', e); }
+       try {
+         const results = await Promise.allSettled(
+           localFolders.map(folder => invoke('scan_local_directory', { path: folder }))
+         );
+         if (cancelled) return;
+         let arr = [];
+         results.forEach((res, i) => {
+           if (res.status === 'fulfilled') {
+             const folder = localFolders[i];
+             arr.push(...res.value.map(p => {
+               const pClean = p.replace(/\\/g, '/');
+               const localUrl = convertFileSrc(pClean, 'cozy');
+               return {
+                 name: pClean.split('/').pop(),
+                 path: localUrl,
+                 realPath: pClean,
+                 category: `Local: ${folder.split('\\').pop()?.split('/').pop()}`,
+                 downloadPath: localUrl
+               };
+             }));
+           } else {
+             console.error('Local scan error:', res.reason);
+           }
+         });
+         setCustomWallpapers(arr);
+       } catch (e) {
+         console.error('Parallel scan error:', e);
        }
-       if (cancelled) return;
-       setCustomWallpapers(arr);
     }
     scanLocal();
     return () => { cancelled = true; };
@@ -329,13 +344,6 @@ export default function App() {
     return () => { u.then(fn => fn()); };
   }, [addToast]);
 
-
-
-
-
-
-
-
   const handleSetWallpaper = useCallback(async (wallpaper) => {
     const url = wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://') 
        ? wallpaper.path 
@@ -436,8 +444,6 @@ export default function App() {
     }
   }, [autoRotate, allWallpapers, rotateInterval, rotateCategory, addToast]);
 
-  // allWallpapers and categories moved up
-
   const filtered = useMemo(() => {
     let base = allWallpapers;
     if (category === 'Favorites') {
@@ -462,36 +468,52 @@ export default function App() {
   }, []);
 
   const handleBulkDelete = useCallback(async () => {
-    if (selectedWallpapers.length === 0) return;
-    const confirmed = await confirm(`Are you sure you want to permanently delete ${selectedWallpapers.length} wallpapers from your computer?`, { title: 'Delete Wallpapers', kind: 'warning' });
-    if (confirmed) {
-      try {
+    try {
+      const count = selectedWallpapers.length;
+      if (count === 0) return;
+      const confirmed = await customConfirm(`Are you sure you want to permanently delete ${count} selected wallpaper${count > 1 ? 's' : ''}?`, { title: 'Delete Wallpapers', kind: 'warning' });
+      if (confirmed) {
         for (const p of selectedWallpapers) {
-          await invoke('delete_local_wallpaper', { path: p });
+          const w = customWallpapers.find(cw => cw.path === p);
+          if (w) {
+            const realPath = w.realPath || w.path;
+            await invoke('delete_local_wallpaper', { path: realPath });
+          }
         }
         setCustomWallpapers(prev => prev.filter(w => !selectedWallpapers.includes(w.path)));
-        addToast(`Deleted ${selectedWallpapers.length} wallpapers`, 'success');
+        setFavorites(prev => {
+          const newFavs = prev.filter(p => !selectedWallpapers.includes(p));
+          localStorage.setItem('cozy_favorites', JSON.stringify(newFavs));
+          return newFavs;
+        });
+        addToast(`Deleted ${count} wallpapers`, 'success');
         setSelectionMode(false);
         setSelectedWallpapers([]);
-      } catch (err) {
-        addToast(`${err}`, 'error');
       }
+    } catch (err) {
+      addToast(`${err}`, 'error');
     }
-  }, [selectedWallpapers, addToast]);
+  }, [selectedWallpapers, addToast, customConfirm]);
 
   const handleDeleteLocal = useCallback(async (wallpaper) => {
     try {
-      const confirmed = await confirm(`Are you sure you want to permanently delete "${wallpaper.name}" from your computer?`, { title: 'Delete Wallpaper', kind: 'warning' });
+      const confirmed = await customConfirm(`Are you sure you want to permanently delete "${wallpaper.name}" from your computer?`, { title: 'Delete Wallpaper', kind: 'warning' });
       if (confirmed) {
-        await invoke('delete_local_wallpaper', { path: wallpaper.path });
+        const realPath = wallpaper.realPath || wallpaper.path;
+        await invoke('delete_local_wallpaper', { path: realPath });
         setCustomWallpapers(prev => prev.filter(w => w.path !== wallpaper.path));
+        setFavorites(prev => {
+          const newFavs = prev.filter(p => p !== wallpaper.path);
+          localStorage.setItem('cozy_favorites', JSON.stringify(newFavs));
+          return newFavs;
+        });
         addToast(`Deleted ${wallpaper.name}`, 'success');
       }
     } catch (err) {
       console.error(err);
       addToast(`Error: ${err}`, 'error');
     }
-  }, [addToast]);
+  }, [addToast, customConfirm]);
 
   const toggleFavorite = useCallback((wallpaper) => {
     setFavorites(prev => {
@@ -501,6 +523,27 @@ export default function App() {
       return newFavs;
     });
   }, []);
+
+  const prevCustomWallpapersLength = useRef(customWallpapers.length);
+  useEffect(() => {
+    if (autoRotate && customWallpapers.length < prevCustomWallpapersLength.current) {
+      const pool = allWallpapers
+        .filter(w => rotateCategory === 'All' || w.category === rotateCategory)
+        .map(w => ({ name: w.name, url: w.realPath || (w.path.startsWith('http') || w.path.startsWith('cozy://') ? w.path : `${STATIC_URL}${w.path}`) }));
+      
+      if (pool.length > 0) {
+        invoke('start_auto_rotate', { 
+          intervalMs: rotateInterval, 
+          wallpapers: pool,
+          startIndex: 0,
+          initialDelayMs: rotateInterval
+        }).catch(console.error);
+      } else {
+        invoke('stop_auto_rotate').catch(console.error);
+      }
+    }
+    prevCustomWallpapersLength.current = customWallpapers.length;
+  }, [customWallpapers.length, autoRotate, allWallpapers, rotateCategory, rotateInterval]);
 
   useEffect(() => {
     const uNext = listen('tray-next-wallpaper', () => {
@@ -719,7 +762,15 @@ export default function App() {
                 </button>
               )
             )}
-            <span className="topbar__count">{category === 'All' ? '' : category + ' — '}{filtered.length} curated</span>
+            <div className="topbar__count" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {category !== 'All' && (
+                <>
+                  <span style={{ fontWeight: 600 }}>{category}</span>
+                  <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'currentColor', opacity: 0.4 }} />
+                </>
+              )}
+              <span style={{ opacity: 0.75 }}>{filtered.length} wallpaper{filtered.length !== 1 ? 's' : ''}</span>
+            </div>
           </div>
         </div>
 
@@ -732,73 +783,35 @@ export default function App() {
               onPreview={handlePreview}
               onDownload={handleDownload}
               setting={settingWallpaper === w.path}
-              isFavorite={favorites.includes(w.path)}
-              onToggleFavorite={toggleFavorite}
-              onDelete={handleDeleteLocal}
               selectionMode={selectionMode}
               isSelected={selectedWallpapers.includes(w.path)}
               onToggleSelect={toggleSelection}
+              onDelete={handleDeleteLocal}
+              isFavorite={favorites.includes(w.path)}
+              onToggleFavorite={toggleFavorite}
             />
           ))}
           {filtered.length > displayCount && (
-            <div ref={loaderRef} className="loader">
-              <div className="spinner"></div> Loading...
-            </div>
-          )}
-          {filtered.length === 0 && wallpapers.length > 0 && !fetchError && (
-            <div className="empty"><LuImage size={44} /><p>No wallpapers found</p></div>
-          )}
-          {fetchError && (
-            <div className="empty" style={{ gap: '12px' }}>
-              <LuTriangleAlert size={44} />
-              <p>Failed to load wallpapers</p>
-              <button onClick={() => {
-                fetchAbortRef.current?.abort();
-                fetch(API_URL)
-                  .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-                  .then(d => { if (Array.isArray(d)) { setWallpapers(d); setFetchError(false); } })
-                  .catch(e => { if (e.name !== 'AbortError') console.error('Retry failed:', e); });
-              }} style={{
-                padding: '8px 20px', borderRadius: '8px', border: '1px solid var(--md-sys-color-outline-variant)',
-                background: 'transparent', color: 'var(--md-sys-color-on-surface)', fontSize: '13px',
-                fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit'
-              }}>
-                Retry
-              </button>
-            </div>
-          )}
-          {wallpapers.length === 0 && !fetchError && !fetching && (
-            <div className="empty"><LuImage size={44} /><p>No wallpapers loaded yet</p></div>
+            <div ref={loaderRef} style={{ width: '100%', height: '40px', gridColumn: '1 / -1' }} />
           )}
         </div>
       </main>
 
-      <AnimatePresence mode="wait">
-        {preview && (
-          <Lightbox
-            wallpaper={preview}
-            onClose={() => setPreview(null)}
-            onSetWallpaper={handleSetWallpaper}
-            onSetLockScreen={handleSetLockScreen}
-            onDownload={handleDownload}
-            setting={settingWallpaper === preview?.path}
-            settingLock={settingLockScreen === preview?.path}
-            onNext={handleNext}
-            onPrev={handlePrev}
-            hasNext={hasNext}
-            hasPrev={hasPrev}
-          />
-        )}
-      </AnimatePresence>
+      <Lightbox current={preview} onClose={() => setPreview(null)} />
+      <SplashScreen show={showSplash} onDone={() => setShowSplash(false)} />
       
-      <UpdateModal
-        show={updateModal.show}
-        state={updateModal.state}
-        version={updateModal.version}
-        progress={updateModal.progress}
-        errorMsg={updateModal.error}
-        onClose={closeUpdateModal}
-        onInstall={handleInstallUpdate}
+      <ConfirmModal 
+        show={confirmState.show}
+        title={confirmState.title}
+        message={confirmState.message}
+        onConfirm={() => {
+          setConfirmState(s => ({ ...s, show: false }));
+          if (confirmState.resolve) confirmState.resolve(true);
+        }}
+        onCancel={() => {
+          setConfirmState(s => ({ ...s, show: false }));
+          if (confirmState.resolve) confirmState.resolve(false);
+        }}
       />
 
       <div className="toasts" aria-live="polite" aria-label="Notifications">
@@ -808,6 +821,16 @@ export default function App() {
           )}
         </AnimatePresence>
       </div>
+
+      <UpdateModal
+        show={updateModal.show}
+        state={updateModal.state}
+        version={updateModal.version}
+        progress={updateModal.progress}
+        errorMsg={updateModal.error}
+        onClose={closeUpdateModal}
+        onInstall={handleInstallUpdate}
+      />
     </div>
   );
 }

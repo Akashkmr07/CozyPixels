@@ -376,6 +376,11 @@ async fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
     std::fs::read(&path).map_err(|e| format!("Failed to read file: {}", e))
 }
 
+#[tauri::command]
+async fn delete_local_wallpaper(path: String) -> Result<(), String> {
+    std::fs::remove_file(&path).map_err(|e| format!("Failed to delete file: {}", e))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -517,6 +522,7 @@ pub fn run() {
             scan_local_directory,
             fetch_image_bytes,
             read_file_bytes,
+            delete_local_wallpaper,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

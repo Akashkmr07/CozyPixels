@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from '../useFocusTrap.js';
 
 export const UpdateModal = ({ show, onClose, state, version, progress, errorMsg, onInstall }) => {
-  const trapRef = useFocusTrap(show);
+  const trapRef = useFocusTrap(show, onClose);
   const statusLabel = {
     checking: 'Checking for updates',
     available: 'Update ready',

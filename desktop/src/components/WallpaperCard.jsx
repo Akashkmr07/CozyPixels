@@ -70,6 +70,7 @@ export const WallpaperCard = React.memo(({ wallpaper, onSetWallpaper, onPreview,
           onLoad={() => setLoaded(true)}
           onError={() => !retrySrc && setError(true)}
           className="card__img"
+          loading="lazy"
           decoding="async"
         />
       )}
