@@ -386,6 +386,13 @@ export default function App() {
       : `${STATIC_URL}${wallpaper.path}`;
     const name = wallpaper.name || 'wallpaper';
 
+    let extension = wallpaper.path.split('.').pop()?.toLowerCase();
+    if (extension && extension.includes('?')) extension = extension.split('?')[0];
+    if (!['jpg', 'jpeg', 'png', 'webp', 'avif'].includes(extension)) {
+      extension = 'jpg';
+    }
+    const filename = `${name}.${extension}`;
+
     try {
       let bytes;
       if (wallpaper.realPath) {
@@ -393,21 +400,23 @@ export default function App() {
       } else {
         bytes = await invoke('fetch_image_bytes', { url });
       }
-      const blob = new Blob([new Uint8Array(bytes)]);
+      
+      const mimeType = extension === 'png' ? 'image/png' : extension === 'webp' ? 'image/webp' : 'image/jpeg';
+      const blob = new Blob([new Uint8Array(bytes)], { type: mimeType });
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
-      a.download = name;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-      addToast(`Downloaded ${name}`, 'success');
+      addToast(`Downloaded ${filename}`, 'success');
     } catch (err) {
       // Fallback: try direct download via anchor
       const a = document.createElement('a');
       a.href = url;
-      a.download = name;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

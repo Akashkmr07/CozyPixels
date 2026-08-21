@@ -18,25 +18,6 @@ export const WallpaperCard = React.memo(({ wallpaper, onSetWallpaper, onPreview,
   );
 
   const displayName = useMemo(() => formatWallpaperName(wallpaper.name), [wallpaper.name]);
-  const [retrySrc, setRetrySrc] = useState(null);
-
-  useEffect(() => {
-    return () => {
-      if (retrySrc) URL.revokeObjectURL(retrySrc);
-    };
-  }, [retrySrc]);
-
-  useEffect(() => {
-    if (!error || !baseImageUrl.startsWith('http') || retrySrc) return;
-    (async () => {
-      try {
-        const bytes = await invoke('fetch_image_bytes', { url: baseImageUrl });
-        const blob = new Blob([new Uint8Array(bytes)]);
-        setRetrySrc(URL.createObjectURL(blob));
-      } catch {
-      }
-    })();
-  }, [error, baseImageUrl, retrySrc]);
 
   return (
     <div
@@ -61,14 +42,14 @@ export const WallpaperCard = React.memo(({ wallpaper, onSetWallpaper, onPreview,
         </div>
       )}
       {!loaded && !error && <div className="card__skeleton" />}
-      {error && !retrySrc ? (
+      {error ? (
         <div className="card__error"><LuImage size={22} /><span>Failed to load</span></div>
       ) : (
         <img
-          src={retrySrc || baseImageUrl}
+          src={baseImageUrl}
           alt={displayName}
           onLoad={() => setLoaded(true)}
-          onError={() => !retrySrc && setError(true)}
+          onError={() => setError(true)}
           className="card__img"
           loading="lazy"
           decoding="async"
