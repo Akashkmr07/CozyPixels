@@ -1,4 +1,4 @@
-/* Design System & CSS Variables */
+
 :root {
   --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --color-warm-white: #fffcf8;
@@ -8,7 +8,7 @@
   --color-emerald-hover: #409b72;
   --color-accent-blue: #7ca8e6;
   
-  /* Glassmorphic settings */
+
   --glass-bg: rgba(20, 18, 18, 0.45);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3);
@@ -19,7 +19,7 @@
   --light-glass-hover: rgba(255, 255, 255, 0.15);
 }
 
-/* Global resets */
+
 body, html {
   margin: 0;
   padding: 0;
@@ -58,6 +58,7 @@ body, html {
   pointer-events: none;
 }
 
+/* Live wallpaper layer */
 #live-wallpaper-layer {
   position: absolute;
   inset: 0;
@@ -177,7 +178,7 @@ body, html {
   text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-
+/* 4. Greeting & Quote Widget */
 #greeting-widget {
   display: flex;
   flex-direction: column;
@@ -358,7 +359,7 @@ body, html {
   display: none;
 }
 
-
+/* Custom checkbox circle styling */
 .custom-checkbox {
   width: 18px;
   height: 18px;
@@ -481,6 +482,7 @@ body, html {
   pointer-events: auto;
 }
 
+
 .floating-trigger {
   width: 48px;
   height: 48px;
@@ -508,6 +510,7 @@ body, html {
   transform: scale(0.92) translateY(-1px);
 }
 
+
 #settings-toggle-btn:hover svg {
   transform: rotate(90deg);
 }
@@ -522,6 +525,7 @@ body, html {
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+
 #soundscape-toggle-btn:hover svg {
   transform: scale(1.1);
 }
@@ -529,6 +533,7 @@ body, html {
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* 9. Soundscapes Panel Popover */
 .soundscape-container {
   position: relative;
   display: flex;
@@ -800,7 +805,7 @@ input:checked + .slider:before {
   transform: translateX(18px);
 }
 
-/* Range slider adjustments */
+
 .slider-label-group {
   display: flex;
   justify-content: space-between;
@@ -931,6 +936,7 @@ input:checked + .slider:before {
   background: var(--color-emerald-hover);
 }
 
+
 .drawer-body::-webkit-scrollbar {
   width: 6px;
 }
@@ -947,7 +953,6 @@ input:checked + .slider:before {
 .drawer-body::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
-
 
 .center-content,
 .bottom-left-panel,
@@ -996,6 +1001,7 @@ input:checked + .slider:before {
 #zen-indicator.show {
   opacity: 0.8;
 }
+
 
 .zen-garden-header {
   display: flex;
@@ -1202,7 +1208,6 @@ input:checked + .slider:before {
   padding: 6px 12px;
   text-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
-
 .mv-remove-btn {
   position: absolute;
   top: -6px;
@@ -1239,6 +1244,7 @@ input:checked + .slider:before {
   transform: scale(0.85);
 }
 
+/* Fade/scale-out played right before a hidden site is re-ranked out */
 .mv-site.mv-removing {
   animation: mvChipRemove 0.2s ease forwards;
   pointer-events: none;
@@ -1247,7 +1253,6 @@ input:checked + .slider:before {
 @keyframes mvChipRemove {
   to { opacity: 0; transform: scale(0.85) translateY(6px); }
 }
-
 .segmented-control {
   display: flex;
   background: rgba(255, 255, 255, 0.05);
@@ -1292,7 +1297,6 @@ input:checked + .slider:before {
   opacity: 0.5;
   line-height: 1.4;
 }
-
 .mv-ripple {
   position: absolute;
   border-radius: 50%;
@@ -1306,7 +1310,6 @@ input:checked + .slider:before {
   0% { transform: scale(0); opacity: 0.7; }
   100% { transform: scale(1); opacity: 0; }
 }
-
 .mv-glass-enhanced .mv-site {
   background: rgba(255, 255, 255, 0.09);
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -1323,7 +1326,8 @@ input:checked + .slider:before {
   background: rgba(255, 255, 255, 0.14);
 }
 
-
+/* Favicon fallback: a small letter-avatar shown when a site's real favicon
+   fails to load, instead of leaving a broken/blank image behind. */
 .mv-favicon-fallback {
   width: 16px;
   height: 16px;
@@ -1336,7 +1340,6 @@ input:checked + .slider:before {
   background: rgba(255, 255, 255, 0.16);
   color: var(--color-warm-white);
 }
-
 .mv-site.mv-pinned {
   border-color: rgba(233, 196, 106, 0.35);
 }
@@ -1355,7 +1358,6 @@ input:checked + .slider:before {
 .mv-site.mv-pinned .mv-favicon {
   position: relative;
 }
-
 .mv-manual-add-panel {
   margin-top: 8px;
 }
@@ -1406,7 +1408,7 @@ input:checked + .slider:before {
   margin-top: 6px;
 }
 
-/*  Live Wallpapers settings section ---- */
+/* ---- Live Wallpapers settings section ---- */
 
 .live-wp-add-row {
   display: flex;

@@ -1,7 +1,30 @@
-
 const CozyLive = (() => {
   const STORAGE_KEYS = ['toggleLiveWallpaper', 'activeLiveWallpaper'];
   let currentObjectUrl = null; // tracks the one blob URL currently in use, for cleanup
+
+
+  let lastRenderedKey = null;
+  let lastAppliedUpdatedAt = 0;
+
+  function initStorageSync() {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== 'local') return;
+
+      if (changes.toggleLiveWallpaper || changes.activeLiveWallpaper) {
+        console.debug('[Cozy Live Sync] Storage change detected — applying.');
+        applyFromStorage();
+        syncToggleUI();
+        refreshPickerUI(); 
+      } else if (changes.liveWallpaperLibraryRev) {
+       console.debug('[Cozy Live Sync] Library changed in another tab — refreshing picker.');
+        refreshPickerUI();
+      }
+    });
+  }
+
+ function bumpLibraryRevision() {
+    chrome.storage.local.set({ liveWallpaperLibraryRev: Date.now() }).catch(() => {});
+  }
 
   function els() {
     return {
@@ -43,6 +66,7 @@ const CozyLive = (() => {
     gifBg.style.display = 'none';
     gifBg.style.backgroundImage = '';
     revokeCurrentObjectUrl();
+    lastRenderedKey = null;
   }
 
   async function disableDueToMissingEntry(context) {
@@ -67,11 +91,7 @@ const CozyLive = (() => {
     setTimeout(() => { statusEl.style.opacity = '0'; }, 4000);
   }
 
-  // Loads a URL into a bare <img> off-DOM first, so a broken/unreachable
-  // direct image (gif) link surfaces a real error message instead of just
-  // quietly showing nothing. Only used for remote (CDN/link) gifs — local
-  // blob gifs can't fail this way, they're already on disk.
-  function loadImageWithVerification(url) {
+function loadImageWithVerification(url) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => resolve();
@@ -85,6 +105,12 @@ const CozyLive = (() => {
     if (!e || !entry) return;
     const { layer, video, web, gifBg } = e;
 
+
+    const key = `${entry.source}:${entry.id}`;
+    if (key === lastRenderedKey && layer.classList.contains('active')) {
+      return;
+    }
+
     revokeCurrentObjectUrl();
     video.style.display = 'none';
     video.onerror = null;
@@ -97,15 +123,6 @@ const CozyLive = (() => {
         const record = await CozyDB.get(entry.id);
         if (!record) { await disableDueToMissingEntry(entry); return; }
 
-        // Local records come in two shapes: file-uploaded (has `blob`, no
-        // `url`) and link-added (has `url`, no `blob`). The code here used
-        // to assume every local video/gif record had a `blob` — true for
-        // uploads, but never true for a link added via "Add Web
-        // Wallpaper." That meant URL.createObjectURL(undefined) threw
-        // immediately for any link-added video/gif, silently disabling
-        // live wallpaper right after "successfully" adding it — the exact
-        // bug reported. Both shapes are now handled explicitly for both
-        // kinds.
         if (record.kind === 'video') {
           if (record.blob) {
             currentObjectUrl = URL.createObjectURL(record.blob);
@@ -162,31 +179,19 @@ const CozyLive = (() => {
             showStatus('That GIF link could not be loaded');
           }
         } else if (entry.kind === 'web') {
-          // Sandboxed deliberately WITHOUT allow-same-origin alongside
-          // allow-scripts — combining both would let embedded third-party
-          // content script-access its own origin freely while still being
-          // trusted by the browser as "sandboxed", which defeats the point.
-          web.src = entry.url;
+           web.src = entry.url;
           web.style.display = 'block';
           scheduleIframeLoadCheck(entry.url);
         }
       }
       layer.classList.add('active');
+      lastRenderedKey = key;
     } catch (err) {
       console.error('[Cozy Live] Failed to render live wallpaper:', entry, err);
       await disableDueToMissingEntry(entry);
     }
   }
 
-  // Iframe embedding is a known hard case on the web platform: a site that
-  // sets X-Frame-Options/CSP frame-ancestors to block embedding still
-  // often fires a 'load' event (the navigation completes even though
-  // nothing renders), so there's no fully reliable cross-origin way to
-  // detect "this specific site refused to be framed." This is a
-  // best-effort heuristic, not a guarantee — if the frame hasn't fired
-  // 'load' within a few seconds, something's very likely wrong, and it's
-  // worth telling the user that rather than leaving them looking at a
-  // silent blank screen with zero explanation.
   function scheduleIframeLoadCheck(url) {
     const { web } = els();
     if (!web) return;
@@ -206,6 +211,12 @@ const CozyLive = (() => {
     try {
       const result = await chrome.storage.local.get(STORAGE_KEYS);
       if (result.toggleLiveWallpaper && result.activeLiveWallpaper) {
+        const incomingUpdatedAt = result.activeLiveWallpaper.updatedAt || 0;
+        if (incomingUpdatedAt < lastAppliedUpdatedAt) {
+          console.debug('[Cozy Live Sync] Ignoring stale update:', incomingUpdatedAt, '<', lastAppliedUpdatedAt);
+          return;
+        }
+        lastAppliedUpdatedAt = incomingUpdatedAt;
         await renderEntry(result.activeLiveWallpaper);
       } else {
         clearLayer();
@@ -218,14 +229,12 @@ const CozyLive = (() => {
   async function setActive(entry) {
     await chrome.storage.local.set({
       toggleLiveWallpaper: true,
-      activeLiveWallpaper: entry,
+      activeLiveWallpaper: { ...entry, updatedAt: Date.now() },
     });
-    await renderEntry(entry);
   }
 
   async function disable() {
     await chrome.storage.local.set({ toggleLiveWallpaper: false });
-    clearLayer();
   }
 
   function setupVisibilityHandling() {
@@ -240,18 +249,7 @@ const CozyLive = (() => {
     });
   }
 
-  // --- Video thumbnail generation ---
-  //
-  // Root cause of "video cards show blank": URL.createObjectURL() on a
-  // video Blob produces a URL pointing at raw video container bytes.
-  // Setting that as a CSS background-image does nothing — browsers only
-  // rasterize actual image formats that way, not video containers. GIFs
-  // worked fine because a GIF *is* an image format. This decodes one real
-  // frame from the video into an actual JPEG thumbnail via a hidden
-  // <video> + <canvas>, once, at upload time — the result is cached on the
-  // IndexedDB record itself so every later grid render is free (no
-  // re-decoding), and the picker card gets a real preview image instead of
-  // a permanently blank box.
+
   const THUMB_MAX_DIM = 480;
   const THUMB_TIMEOUT_MS = 8000;
 
@@ -277,9 +275,7 @@ const CozyLive = (() => {
       videoEl.addEventListener('error', () => { clearTimeout(timer); finish(null); });
 
       videoEl.addEventListener('loadedmetadata', () => {
-        // A frame a little into the clip tends to be more representative
-        // than frame zero (which is very often a black/fade-in frame).
-        const seekTo = Math.min(1, (videoEl.duration || 1) * 0.1);
+       const seekTo = Math.min(1, (videoEl.duration || 1) * 0.1);
         try {
           videoEl.currentTime = seekTo;
         } catch {
@@ -299,26 +295,14 @@ const CozyLive = (() => {
           ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
           finish(canvas.toDataURL('image/jpeg', 0.72));
         } catch (err) {
-          // Local blob thumbnails should never be cross-origin-tainted,
-          // but stay defensive — a failed thumbnail should never break the
-          // upload itself, just fall back to no preview image.
-          console.error('[Cozy Live] Thumbnail generation failed:', err);
+           console.error('[Cozy Live] Thumbnail generation failed:', err);
           finish(null);
         }
       });
     });
   }
 
-  // --- Storage quota awareness ---
-  //
-  // Root cause of "stops accepting new wallpapers after 3-4": IndexedDB
-  // has a real, browser-managed disk quota. Wallpaper videos are often
-  // tens to hundreds of MB each — a handful of them can add up to more
-  // than what's available, and the previous version silently dropped
-  // anything that failed to save with no explanation, which looks
-  // indistinguishable from an artificial "3-4 item limit." There isn't
-  // one; this surfaces the real constraint instead of hiding it.
-  async function getStorageEstimate() {
+ async function getStorageEstimate() {
     if (!navigator.storage || !navigator.storage.estimate) return null;
     try {
       return await navigator.storage.estimate();
@@ -350,8 +334,7 @@ const CozyLive = (() => {
     return !!err && (err.name === 'QuotaExceededError' || /quota/i.test(err.message || ''));
   }
 
-  // --- Settings drawer: management UI ---
-
+ 
   async function listAllEntries() {
     const [localFiles, storageResult] = await Promise.all([
       CozyDB.getAll().catch(err => { console.error('[Cozy Live] CozyDB.getAll failed:', err); return []; }),
@@ -363,8 +346,6 @@ const CozyLive = (() => {
       .map(f => {
         let previewUrl = null;
         if (f.kind === 'video') {
-          // Cached JPEG data URL from generateVideoThumbnail() — never a
-          // blob URL of the video itself, which is the bug this fixes.
           previewUrl = f.thumbnailDataUrl || null;
         } else if (f.kind === 'gif' && f.blob) {
           previewUrl = URL.createObjectURL(f.blob);
@@ -466,9 +447,6 @@ const CozyLive = (() => {
         grid.appendChild(renderPickerCard(entry, activeEntry, handleApply, handleDelete));
       }
 
-      // Only blob-backed preview URLs (local GIFs) need revoking — video
-      // thumbnails are data: URLs (self-contained strings) and CDN
-      // previews are plain remote URLs, neither needs cleanup.
       for (const entry of local) {
         if (entry.isBlobPreview && entry.previewUrl) URL.revokeObjectURL(entry.previewUrl);
       }
@@ -484,16 +462,16 @@ const CozyLive = (() => {
       ? { source: 'cdn', id: entry.id, kind: entry.kind, name: entry.name, url: entry.url }
       : { source: 'local', id: entry.id, kind: entry.kind, name: entry.name };
     await setActive(toApply);
-    syncToggleUI();
-    await refreshPickerUI();
   }
 
   async function handleDelete(entry) {
     await CozyDB.remove(entry.id);
     const result = await chrome.storage.local.get(['activeLiveWallpaper']);
     if (result.activeLiveWallpaper && isSameEntry(result.activeLiveWallpaper, entry)) {
+      // Falls back to static — onChanged propagates this to every tab.
       await disable();
-      syncToggleUI();
+    } else {
+       bumpLibraryRevision();
     }
     await refreshPickerUI();
   }
@@ -538,15 +516,17 @@ const CozyLive = (() => {
       );
       if (lastAdded) {
         await setActive({ source: 'local', id: lastAdded.id, kind: lastAdded.kind, name: lastAdded.name });
-        syncToggleUI();
+      } else {
+        await refreshPickerUI();
       }
-    } else if (quotaHit) {
-      showStatus('Storage limit reached — remove some live wallpapers or use a link instead');
-    } else if (skipped > 0) {
-      showStatus('Unsupported file type or too large (max 300MB)');
+    } else {
+      if (quotaHit) {
+        showStatus('Storage limit reached — remove some live wallpapers or use a link instead');
+      } else if (skipped > 0) {
+        showStatus('Unsupported file type or too large (max 300MB)');
+      }
+      await refreshPickerUI();
     }
-
-    await refreshPickerUI();
   }
 
   function isValidHttpUrl(value) {
@@ -558,22 +538,12 @@ const CozyLive = (() => {
     }
   }
 
-  // Pasting a URL without "https://" (very common — people copy from an
-  // address bar that visually hides the scheme, or just type it without
-  // thinking) makes `new URL()` throw, so isValidHttpUrl() would always
-  // reject it with no explanation. Auto-prepending https:// when no scheme
-  // is present fixes that without silently guessing wrong — anything that
-  // already has a scheme is left untouched.
+
   function normalizeUrlInput(value) {
     const trimmed = value.trim();
     return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
   }
 
-  // Distinguishes a direct link to a media file from a link to a webpage.
-  // Checks both the path and, as a fallback, the full URL string — some
-  // CDNs put the real filename in a query parameter rather than the path
-  // itself (e.g. a signed download URL), so a pure pathname check alone
-  // misses those and would wrongly treat a direct video link as a webpage.
   function detectLinkKind(url) {
     let path = '';
     try { path = new URL(url).pathname.toLowerCase(); } catch { /* fall through to full-string check below */ }
@@ -583,17 +553,7 @@ const CozyLive = (() => {
     return 'web';
   }
 
-  // Feature: when a pasted link looks like a webpage rather than a direct
-  // media file (e.g. a Pixabay video *page*, not its CDN file), try to
-  // find the real direct file URL inside that page before falling back to
-  // iframe-embedding it. Stock-media/CDN-backed sites very commonly embed
-  // their own direct file URL somewhere in the page markup — an og:video
-  // meta tag, a download/edit link's query string, a <source> tag, etc.
-  // This is a general regex scan, not hand-coded to one specific site, so
-  // it has a real chance of working beyond just Pixabay. Uses the
-  // extension's existing https://*/* host_permissions, which is what lets
-  // an extension page fetch() and read cross-origin content a normal
-  // webpage couldn't.
+
   async function tryResolveDirectMediaUrl(pageUrl) {
     try {
       const controller = new AbortController();
@@ -603,11 +563,7 @@ const CozyLive = (() => {
       if (!res.ok) return null;
       const html = await res.text();
 
-      // Try both plain and percent-encoded forms — some pages only reveal
-      // the real file URL inside an already-URL-encoded query parameter
-      // (e.g. a "download via a third-party editor" link that passes the
-      // file URL along), not as a bare link in the markup.
-      const patterns = [
+       const patterns = [
         /https:\/\/[^"'\s\\]+\.(?:mp4|webm)\b/i,
         /https%3A%2F%2F[^"'\s\\&]+\.(?:mp4|webm)\b/i,
         /https:\/\/[^"'\s\\]+\.gif\b/i,
@@ -669,8 +625,6 @@ const CozyLive = (() => {
       showStatus(`${kind === 'gif' ? 'GIF' : 'Video'} link added`);
     }
     await setActive({ source: 'local', id: record.id, kind: record.kind, name: record.name });
-    syncToggleUI();
-    await refreshPickerUI();
   }
 
   function setupUI() {
@@ -687,8 +641,7 @@ const CozyLive = (() => {
           if (toggle.checked) {
             const result = await chrome.storage.local.get(['activeLiveWallpaper']);
             if (result.activeLiveWallpaper) {
-              await chrome.storage.local.set({ toggleLiveWallpaper: true });
-              await renderEntry(result.activeLiveWallpaper);
+               await chrome.storage.local.set({ toggleLiveWallpaper: true });
             } else {
               const { local, catalog } = await listAllEntries();
               const first = local[0] || catalog[0];
@@ -703,7 +656,6 @@ const CozyLive = (() => {
           } else {
             await disable();
           }
-          await refreshPickerUI();
         } catch (err) {
           console.error('[Cozy Live] Toggle handler failed:', err);
           toggle.checked = false;
@@ -740,6 +692,7 @@ const CozyLive = (() => {
 
   async function init() {
     setupVisibilityHandling();
+    initStorageSync();
     await applyFromStorage();
     setupUI();
   }

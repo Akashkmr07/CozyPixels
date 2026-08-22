@@ -50,7 +50,14 @@ async function fetchAndSaveWallpapers() {
 
 async function rotateWallpaper() {
   try {
-    
+    // Skip entirely while a live wallpaper (video/gif/web) is active — the
+    // static image would just be fetched, base64-encoded, and cached into
+    // storage for nothing, since #live-wallpaper-layer is drawn on top of
+    // it and it's never actually seen. This is exactly the "the rotation
+    // timer is a static-wallpaper-only thing" boundary: the alarm keeps
+    // ticking on schedule so it picks back up immediately once live mode
+    // is turned off, but does zero network/storage work while it wouldn't
+    // be visible anyway.
     const liveState = await chrome.storage.local.get(['toggleLiveWallpaper']);
     if (liveState.toggleLiveWallpaper) {
       console.log('Cozy Engine: skipping static rotation — live wallpaper is active');
@@ -61,7 +68,7 @@ async function rotateWallpaper() {
     
     let wallpapersList = result.allWallpapers || [];
     
-    
+    // Filter list to favorites if settings dictate and there are favorites
     if (result.toggleCycleFavorites && result.favoriteWallpapers && result.favoriteWallpapers.length > 0) {
       wallpapersList = result.favoriteWallpapers;
     }
@@ -100,7 +107,7 @@ async function rotateWallpaper() {
         cachedImage: null,
         currentMeta: selected
       });
-      
+      // Try to notify newtab UI to refresh background even if image caching failed
       chrome.runtime.sendMessage({ action: "refreshUI" }).catch(() => {});
     }
   } catch (err) {
