@@ -1,31 +1,25 @@
 const CozyLive = (() => {
   const STORAGE_KEYS = ['toggleLiveWallpaper', 'activeLiveWallpaper'];
-  let currentObjectUrl = null; // tracks the one blob URL currently in use, for cleanup
-
-
+  let currentObjectUrl = null; 
   let lastRenderedKey = null;
   let lastAppliedUpdatedAt = 0;
-
   function initStorageSync() {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName !== 'local') return;
-
       if (changes.toggleLiveWallpaper || changes.activeLiveWallpaper) {
         console.debug('[Cozy Live Sync] Storage change detected — applying.');
         applyFromStorage();
         syncToggleUI();
         refreshPickerUI(); 
       } else if (changes.liveWallpaperLibraryRev) {
-       console.debug('[Cozy Live Sync] Library changed in another tab — refreshing picker.');
+        console.debug('[Cozy Live Sync] Library changed in another tab — refreshing picker.');
         refreshPickerUI();
       }
     });
   }
-
- function bumpLibraryRevision() {
+  function bumpLibraryRevision() {
     chrome.storage.local.set({ liveWallpaperLibraryRev: Date.now() }).catch(() => {});
   }
-
   function els() {
     return {
       layer: document.getElementById('live-wallpaper-layer'),
@@ -34,7 +28,6 @@ const CozyLive = (() => {
       gifBg: document.getElementById('live-gif-bg'),
     };
   }
-
   function requireEls() {
     const e = els();
     if (!e.layer || !e.video || !e.web || !e.gifBg) {
@@ -43,14 +36,12 @@ const CozyLive = (() => {
     }
     return e;
   }
-
   function revokeCurrentObjectUrl() {
     if (currentObjectUrl) {
       URL.revokeObjectURL(currentObjectUrl);
       currentObjectUrl = null;
     }
   }
-
   function clearLayer() {
     const e = requireEls();
     if (!e) return;
@@ -68,21 +59,18 @@ const CozyLive = (() => {
     revokeCurrentObjectUrl();
     lastRenderedKey = null;
   }
-
   async function disableDueToMissingEntry(context) {
     console.warn('[Cozy Live] Active entry could not be rendered, falling back to static:', context);
     await chrome.storage.local.set({ toggleLiveWallpaper: false });
     clearLayer();
     syncToggleUI();
   }
-
   function syncToggleUI() {
     chrome.storage.local.get(['toggleLiveWallpaper']).then(r => {
       const toggle = document.getElementById('toggle-live-wallpaper');
       if (toggle) toggle.checked = !!r.toggleLiveWallpaper;
     }).catch(() => {});
   }
-
   function showStatus(message) {
     const statusEl = document.getElementById('live-wp-status');
     if (!statusEl) return;
@@ -90,8 +78,7 @@ const CozyLive = (() => {
     statusEl.style.opacity = '1';
     setTimeout(() => { statusEl.style.opacity = '0'; }, 4000);
   }
-
-function loadImageWithVerification(url) {
+  function loadImageWithVerification(url) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => resolve();
@@ -99,30 +86,24 @@ function loadImageWithVerification(url) {
       img.src = url;
     });
   }
-
   async function renderEntry(entry) {
     const e = requireEls();
     if (!e || !entry) return;
     const { layer, video, web, gifBg } = e;
-
-
     const key = `${entry.source}:${entry.id}`;
     if (key === lastRenderedKey && layer.classList.contains('active')) {
       return;
     }
-
     revokeCurrentObjectUrl();
     video.style.display = 'none';
     video.onerror = null;
     web.style.display = 'none';
     gifBg.style.display = 'none';
     web.src = 'about:blank';
-
     try {
       if (entry.source === 'local') {
         const record = await CozyDB.get(entry.id);
         if (!record) { await disableDueToMissingEntry(entry); return; }
-
         if (record.kind === 'video') {
           if (record.blob) {
             currentObjectUrl = URL.createObjectURL(record.blob);
@@ -137,7 +118,7 @@ function loadImageWithVerification(url) {
             throw new Error('video record has neither blob nor url');
           }
           video.style.display = 'block';
-          video.play().catch(() => {}); // autoplay can be blocked in some contexts; muted+loop covers the common case
+          video.play().catch(() => {}); 
         } else if (record.kind === 'gif') {
           if (record.blob) {
             currentObjectUrl = URL.createObjectURL(record.blob);
@@ -179,7 +160,7 @@ function loadImageWithVerification(url) {
             showStatus('That GIF link could not be loaded');
           }
         } else if (entry.kind === 'web') {
-           web.src = entry.url;
+          web.src = entry.url;
           web.style.display = 'block';
           scheduleIframeLoadCheck(entry.url);
         }
@@ -191,7 +172,6 @@ function loadImageWithVerification(url) {
       await disableDueToMissingEntry(entry);
     }
   }
-
   function scheduleIframeLoadCheck(url) {
     const { web } = els();
     if (!web) return;
@@ -206,7 +186,6 @@ function loadImageWithVerification(url) {
       }
     }, 6000);
   }
-
   async function applyFromStorage() {
     try {
       const result = await chrome.storage.local.get(STORAGE_KEYS);
@@ -225,18 +204,15 @@ function loadImageWithVerification(url) {
       console.error('[Cozy Live] applyFromStorage failed:', err);
     }
   }
-
   async function setActive(entry) {
     await chrome.storage.local.set({
       toggleLiveWallpaper: true,
       activeLiveWallpaper: { ...entry, updatedAt: Date.now() },
     });
   }
-
   async function disable() {
     await chrome.storage.local.set({ toggleLiveWallpaper: false });
   }
-
   function setupVisibilityHandling() {
     document.addEventListener('visibilitychange', () => {
       const e = els();
@@ -248,11 +224,8 @@ function loadImageWithVerification(url) {
       }
     });
   }
-
-
   const THUMB_MAX_DIM = 480;
   const THUMB_TIMEOUT_MS = 8000;
-
   function generateVideoThumbnail(blob) {
     return new Promise((resolve) => {
       const videoEl = document.createElement('video');
@@ -261,7 +234,6 @@ function loadImageWithVerification(url) {
       videoEl.preload = 'metadata';
       const objUrl = URL.createObjectURL(blob);
       videoEl.src = objUrl;
-
       let settled = false;
       const finish = (result) => {
         if (settled) return;
@@ -269,13 +241,10 @@ function loadImageWithVerification(url) {
         URL.revokeObjectURL(objUrl);
         resolve(result);
       };
-
       const timer = setTimeout(() => finish(null), THUMB_TIMEOUT_MS);
-
       videoEl.addEventListener('error', () => { clearTimeout(timer); finish(null); });
-
       videoEl.addEventListener('loadedmetadata', () => {
-       const seekTo = Math.min(1, (videoEl.duration || 1) * 0.1);
+        const seekTo = Math.min(1, (videoEl.duration || 1) * 0.1);
         try {
           videoEl.currentTime = seekTo;
         } catch {
@@ -283,7 +252,6 @@ function loadImageWithVerification(url) {
           finish(null);
         }
       });
-
       videoEl.addEventListener('seeked', () => {
         clearTimeout(timer);
         try {
@@ -295,14 +263,13 @@ function loadImageWithVerification(url) {
           ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
           finish(canvas.toDataURL('image/jpeg', 0.72));
         } catch (err) {
-           console.error('[Cozy Live] Thumbnail generation failed:', err);
+          console.error('[Cozy Live] Thumbnail generation failed:', err);
           finish(null);
         }
       });
     });
   }
-
- async function getStorageEstimate() {
+  async function getStorageEstimate() {
     if (!navigator.storage || !navigator.storage.estimate) return null;
     try {
       return await navigator.storage.estimate();
@@ -310,14 +277,12 @@ function loadImageWithVerification(url) {
       return null;
     }
   }
-
   function formatBytes(bytes) {
     if (!bytes || bytes <= 0) return '0 MB';
     const mb = bytes / (1024 * 1024);
     if (mb < 1024) return `${mb.toFixed(0)} MB`;
     return `${(mb / 1024).toFixed(1)} GB`;
   }
-
   async function updateStorageIndicator() {
     const el = document.getElementById('live-wp-storage');
     if (!el) return;
@@ -329,18 +294,14 @@ function loadImageWithVerification(url) {
       el.style.display = 'none';
     }
   }
-
   function isQuotaError(err) {
     return !!err && (err.name === 'QuotaExceededError' || /quota/i.test(err.message || ''));
   }
-
- 
   async function listAllEntries() {
     const [localFiles, storageResult] = await Promise.all([
       CozyDB.getAll().catch(err => { console.error('[Cozy Live] CozyDB.getAll failed:', err); return []; }),
       chrome.storage.local.get(['allWallpapers']),
     ]);
-
     const local = localFiles
       .sort((a, b) => b.addedAt - a.addedAt)
       .map(f => {
@@ -361,7 +322,6 @@ function loadImageWithVerification(url) {
           isBlobPreview: f.kind === 'gif' && !!f.blob,
         };
       });
-
     const catalog = (storageResult.allWallpapers || [])
       .filter(w => w && (w.type === 'video' || w.type === 'gif' || w.type === 'web') && w.url)
       .map(w => ({
@@ -372,20 +332,16 @@ function loadImageWithVerification(url) {
         previewUrl: w.thumbnail || (w.type === 'gif' ? w.url : null),
         url: w.url,
       }));
-
     return { local, catalog };
   }
-
   function isSameEntry(a, b) {
     if (!a || !b) return false;
     return a.source === b.source && String(a.id) === String(b.id);
   }
-
   function renderPickerCard(entry, activeEntry, onApply, onDelete) {
     const card = document.createElement('div');
     card.className = 'live-wp-card';
     if (isSameEntry(entry, activeEntry)) card.classList.add('active');
-
     const preview = document.createElement('div');
     preview.className = 'live-wp-card__preview';
     if (entry.previewUrl) {
@@ -398,23 +354,18 @@ function loadImageWithVerification(url) {
     badge.className = 'live-wp-card__badge';
     badge.textContent = entry.kind.toUpperCase();
     preview.appendChild(badge);
-
     if (isSameEntry(entry, activeEntry)) {
       const applied = document.createElement('span');
       applied.className = 'live-wp-card__applied';
       applied.textContent = 'Applied';
       preview.appendChild(applied);
     }
-
     card.appendChild(preview);
-
     const name = document.createElement('div');
     name.className = 'live-wp-card__name';
     name.textContent = entry.name.replace(/\.[^/.]+$/, '');
     card.appendChild(name);
-
     card.addEventListener('click', () => onApply(entry));
-
     if (entry.source === 'local' && onDelete) {
       const del = document.createElement('button');
       del.className = 'live-wp-card__delete';
@@ -423,72 +374,57 @@ function loadImageWithVerification(url) {
       del.addEventListener('click', (e) => { e.stopPropagation(); onDelete(entry); });
       card.appendChild(del);
     }
-
     return card;
   }
-
   async function refreshPickerUI() {
     const grid = document.getElementById('live-wp-grid');
     const emptyState = document.getElementById('live-wp-empty');
     if (!grid) return;
-
     try {
       const [{ local, catalog }, storageResult] = await Promise.all([
         listAllEntries(),
         chrome.storage.local.get(['activeLiveWallpaper', 'toggleLiveWallpaper']),
       ]);
       const activeEntry = storageResult.toggleLiveWallpaper ? storageResult.activeLiveWallpaper : null;
-
       grid.innerHTML = '';
       const all = [...local, ...catalog];
-
       if (emptyState) emptyState.style.display = all.length === 0 ? 'block' : 'none';
       for (const entry of all) {
         grid.appendChild(renderPickerCard(entry, activeEntry, handleApply, handleDelete));
       }
-
       for (const entry of local) {
         if (entry.isBlobPreview && entry.previewUrl) URL.revokeObjectURL(entry.previewUrl);
       }
-
       updateStorageIndicator();
     } catch (err) {
       console.error('[Cozy Live] refreshPickerUI failed:', err);
     }
   }
-
   async function handleApply(entry) {
     const toApply = entry.source === 'cdn'
       ? { source: 'cdn', id: entry.id, kind: entry.kind, name: entry.name, url: entry.url }
       : { source: 'local', id: entry.id, kind: entry.kind, name: entry.name };
     await setActive(toApply);
   }
-
   async function handleDelete(entry) {
     await CozyDB.remove(entry.id);
     const result = await chrome.storage.local.get(['activeLiveWallpaper']);
     if (result.activeLiveWallpaper && isSameEntry(result.activeLiveWallpaper, entry)) {
-      // Falls back to static — onChanged propagates this to every tab.
       await disable();
     } else {
-       bumpLibraryRevision();
+      bumpLibraryRevision();
     }
     await refreshPickerUI();
   }
-
   const ACCEPTED_TYPES = ['video/mp4', 'video/webm', 'video/ogg', 'image/gif'];
-  const MAX_FILE_BYTES = 300 * 1024 * 1024; // 300MB — generous for a wallpaper video, cheap safety cap
-
+  const MAX_FILE_BYTES = 300 * 1024 * 1024; 
   async function handleFileUpload(fileList) {
     let added = 0, skipped = 0, quotaHit = false, lastAdded = null;
-
     for (const file of fileList) {
       if (!ACCEPTED_TYPES.includes(file.type)) { skipped++; continue; }
       if (file.size > MAX_FILE_BYTES) { skipped++; continue; }
-
       const kind = file.type === 'image/gif' ? 'gif' : 'video';
       const thumbnailDataUrl = kind === 'video' ? await generateVideoThumbnail(file) : null;
-
       const record = {
         id: CozyDB.makeId(),
         name: file.name,
@@ -508,7 +444,6 @@ function loadImageWithVerification(url) {
         skipped++;
       }
     }
-
     if (added > 0) {
       showStatus(
         `${added} file${added > 1 ? 's' : ''} added` +
@@ -528,7 +463,6 @@ function loadImageWithVerification(url) {
       await refreshPickerUI();
     }
   }
-
   function isValidHttpUrl(value) {
     try {
       const u = new URL(value);
@@ -537,23 +471,18 @@ function loadImageWithVerification(url) {
       return false;
     }
   }
-
-
   function normalizeUrlInput(value) {
     const trimmed = value.trim();
-    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    return /^https?:\/\
   }
-
   function detectLinkKind(url) {
     let path = '';
-    try { path = new URL(url).pathname.toLowerCase(); } catch { /* fall through to full-string check below */ }
+    try { path = new URL(url).pathname.toLowerCase(); } catch {  }
     const full = url.toLowerCase();
     if (/\.(mp4|webm|ogv)(\?|$)/.test(path) || /\.(mp4|webm|ogv)(\?|$)/.test(full)) return 'video';
     if (/\.gif(\?|$)/.test(path) || /\.gif(\?|$)/.test(full)) return 'gif';
     return 'web';
   }
-
-
   async function tryResolveDirectMediaUrl(pageUrl) {
     try {
       const controller = new AbortController();
@@ -562,8 +491,7 @@ function loadImageWithVerification(url) {
       clearTimeout(timeout);
       if (!res.ok) return null;
       const html = await res.text();
-
-       const patterns = [
+      const patterns = [
         /https:\/\/[^"'\s\\]+\.(?:mp4|webm)\b/i,
         /https%3A%2F%2F[^"'\s\\&]+\.(?:mp4|webm)\b/i,
         /https:\/\/[^"'\s\\]+\.gif\b/i,
@@ -581,17 +509,14 @@ function loadImageWithVerification(url) {
       return null;
     }
   }
-
   async function handleAddWebWallpaper(rawUrl) {
     const url = normalizeUrlInput(rawUrl);
     if (!isValidHttpUrl(url)) {
       showStatus('Enter a valid URL');
       return;
     }
-
     let kind = detectLinkKind(url);
     let finalUrl = url;
-
     if (kind === 'web') {
       showStatus('Checking link…');
       const resolved = await tryResolveDirectMediaUrl(url);
@@ -600,7 +525,6 @@ function loadImageWithVerification(url) {
         kind = /\.gif\b/i.test(resolved) ? 'gif' : 'video';
       }
     }
-
     const record = {
       id: CozyDB.makeId(),
       name: new URL(finalUrl).hostname,
@@ -616,7 +540,6 @@ function loadImageWithVerification(url) {
       showStatus(isQuotaError(err) ? 'Storage limit reached' : 'Could not save that link');
       return;
     }
-
     if (kind === 'web') {
       showStatus('Web wallpaper added — note: some sites block embedding');
     } else if (finalUrl !== url) {
@@ -626,14 +549,12 @@ function loadImageWithVerification(url) {
     }
     await setActive({ source: 'local', id: record.id, kind: record.kind, name: record.name });
   }
-
   function setupUI() {
     const toggle = document.getElementById('toggle-live-wallpaper');
     const fileInput = document.getElementById('live-wp-file-input');
     const addFileBtn = document.getElementById('live-wp-add-file-btn');
     const addWebBtn = document.getElementById('live-wp-add-web-btn');
     const webUrlInput = document.getElementById('live-wp-web-url');
-
     if (toggle) {
       syncToggleUI();
       toggle.addEventListener('change', async () => {
@@ -641,7 +562,7 @@ function loadImageWithVerification(url) {
           if (toggle.checked) {
             const result = await chrome.storage.local.get(['activeLiveWallpaper']);
             if (result.activeLiveWallpaper) {
-               await chrome.storage.local.set({ toggleLiveWallpaper: true });
+              await chrome.storage.local.set({ toggleLiveWallpaper: true });
             } else {
               const { local, catalog } = await listAllEntries();
               const first = local[0] || catalog[0];
@@ -663,7 +584,6 @@ function loadImageWithVerification(url) {
         }
       });
     }
-
     if (addFileBtn && fileInput) {
       addFileBtn.addEventListener('click', () => fileInput.click());
       fileInput.addEventListener('change', (e) => {
@@ -673,7 +593,6 @@ function loadImageWithVerification(url) {
         }
       });
     }
-
     if (addWebBtn && webUrlInput) {
       addWebBtn.addEventListener('click', () => {
         const val = webUrlInput.value.trim();
@@ -686,20 +605,16 @@ function loadImageWithVerification(url) {
         if (e.key === 'Enter') addWebBtn.click();
       });
     }
-
     refreshPickerUI();
   }
-
   async function init() {
     setupVisibilityHandling();
     initStorageSync();
     await applyFromStorage();
     setupUI();
   }
-
   return { init, refreshPickerUI };
 })();
-
 document.addEventListener('DOMContentLoaded', () => {
   CozyLive.init().catch(err => console.error('[Cozy Live] init failed:', err));
 });

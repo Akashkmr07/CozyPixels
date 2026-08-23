@@ -1,6 +1,6 @@
 let audioCtx = null;
 let masterGain = null;
-let activeSounds = {};
+let activeSounds = {}; 
 let currentVolume = 0.5;
 let currentMeta = null;
 function initAudio() {
@@ -38,7 +38,7 @@ function getPinkNoiseBuffer() {
     b5 = -0.7616 * b5 - white * 0.0168980;
     const pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
     b6 = white * 0.115926;
-    data[i] = pink * 0.11;
+    data[i] = pink * 0.11; 
   }
   return buffer;
 }
@@ -101,27 +101,27 @@ function startSound(type) {
         osc.stop(t + dur + 0.05);
       }
     }, 150);
-    activeSounds.rain = {
-      source1,
-      gain1,
+    activeSounds.rain = { 
+      source1, 
+      gain1, 
       filter1,
       source2,
       gain2,
       filter2,
       interval: intervalId,
       stop: () => {
-        try { source1.stop(); } catch (e) { }
-        try { source1.disconnect(); } catch (e) { }
-        try { filter1.disconnect(); } catch (e) { }
-        try { gain1.disconnect(); } catch (e) { }
-        try { source2.stop(); } catch (e) { }
-        try { source2.disconnect(); } catch (e) { }
-        try { filter2.disconnect(); } catch (e) { }
-        try { gain2.disconnect(); } catch (e) { }
+        try { source1.stop(); } catch(e){}
+        try { source1.disconnect(); } catch(e){}
+        try { filter1.disconnect(); } catch(e){}
+        try { gain1.disconnect(); } catch(e){}
+        try { source2.stop(); } catch(e){}
+        try { source2.disconnect(); } catch(e){}
+        try { filter2.disconnect(); } catch(e){}
+        try { gain2.disconnect(); } catch(e){}
         clearInterval(intervalId);
       }
     };
-  }
+  } 
   else if (type === 'fire') {
     const rumbleSource = audioCtx.createBufferSource();
     rumbleSource.buffer = getPinkNoiseBuffer();
@@ -179,14 +179,14 @@ function startSound(type) {
       filter: rumbleFilter,
       interval: intervalId,
       stop: () => {
-        try { rumbleSource.stop(); } catch (e) { }
-        try { rumbleSource.disconnect(); } catch (e) { }
-        try { rumbleFilter.disconnect(); } catch (e) { }
-        try { rumbleGain.disconnect(); } catch (e) { }
+        try { rumbleSource.stop(); } catch(e){}
+        try { rumbleSource.disconnect(); } catch(e){}
+        try { rumbleFilter.disconnect(); } catch(e){}
+        try { rumbleGain.disconnect(); } catch(e){}
         clearInterval(intervalId);
       }
     };
-  }
+  } 
   else if (type === 'waves') {
     const sourceL = audioCtx.createBufferSource();
     sourceL.buffer = getPinkNoiseBuffer();
@@ -255,21 +255,21 @@ function startSound(type) {
       intervalL: waveTimerL,
       intervalR: waveTimerR,
       stop: () => {
-        try { sourceL.stop(); } catch (e) { }
-        try { sourceL.disconnect(); } catch (e) { }
-        try { filterL.disconnect(); } catch (e) { }
-        try { gainL.disconnect(); } catch (e) { }
-        try { pannerL.disconnect(); } catch (e) { }
-        try { sourceR.stop(); } catch (e) { }
-        try { sourceR.disconnect(); } catch (e) { }
-        try { filterR.disconnect(); } catch (e) { }
-        try { gainR.disconnect(); } catch (e) { }
-        try { pannerR.disconnect(); } catch (e) { }
+        try { sourceL.stop(); } catch(e){}
+        try { sourceL.disconnect(); } catch(e){}
+        try { filterL.disconnect(); } catch(e){}
+        try { gainL.disconnect(); } catch(e){}
+        try { pannerL.disconnect(); } catch(e){}
+        try { sourceR.stop(); } catch(e){}
+        try { sourceR.disconnect(); } catch(e){}
+        try { filterR.disconnect(); } catch(e){}
+        try { gainR.disconnect(); } catch(e){}
+        try { pannerR.disconnect(); } catch(e){}
         clearInterval(waveTimerL);
         clearInterval(waveTimerR);
       }
     };
-  }
+  } 
   else if (type === 'brown') {
     const source = audioCtx.createBufferSource();
     source.buffer = getBrownNoiseBuffer();
@@ -283,15 +283,15 @@ function startSound(type) {
     filter.connect(gain);
     gain.connect(masterGain);
     source.start();
-    activeSounds.brown = {
-      source,
-      gain,
+    activeSounds.brown = { 
+      source, 
+      gain, 
       filter,
       stop: () => {
-        try { source.stop(); } catch (e) { }
-        try { source.disconnect(); } catch (e) { }
-        try { filter.disconnect(); } catch (e) { }
-        try { gain.disconnect(); } catch (e) { }
+        try { source.stop(); } catch(e){}
+        try { source.disconnect(); } catch(e){}
+        try { filter.disconnect(); } catch(e){}
+        try { gain.disconnect(); } catch(e){}
       }
     };
   }
@@ -313,9 +313,9 @@ function applyBackgroundBlur(px) {
 }
 async function updateUI() {
   const result = await chrome.storage.local.get([
-    'cachedImage',
-    'currentWallpaper',
-    'currentMeta',
+    'cachedImage', 
+    'currentWallpaper', 
+    'currentMeta', 
     'favoriteWallpapers',
     'dimmerVal',
     'bgBlurVal',
@@ -435,7 +435,7 @@ function updateClock() {
     if (is12h) {
       ampm = hours >= 12 ? 'PM' : 'AM';
       hours = hours % 12;
-      hours = hours ? hours : 12;
+      hours = hours ? hours : 12; 
       hours = String(hours).padStart(2, '0');
       ampmEl.innerText = ampm;
       ampmEl.style.display = '';
@@ -486,10 +486,10 @@ function setupFocusGoal() {
   focusInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && focusInput.value.trim() !== '') {
       const goal = focusInput.value.trim();
-      chrome.storage.local.set({
-        focusGoal: goal,
+      chrome.storage.local.set({ 
+        focusGoal: goal, 
         focusCompleted: false,
-        focusRewarded: false
+        focusRewarded: false 
       }, () => {
         focusText.innerText = goal;
         focusCheckbox.checked = false;
@@ -772,8 +772,8 @@ function setupCleanVibeMode() {
   });
   document.addEventListener('dblclick', (e) => {
     if (
-      e.target.id === 'sanctuary-bg' ||
-      e.target.id === 'bg-dimmer-overlay' ||
+      e.target.id === 'sanctuary-bg' || 
+      e.target.id === 'bg-dimmer-overlay' || 
       e.target.classList.contains('overlay') ||
       e.target.classList.contains('center-content')
     ) {
@@ -817,10 +817,10 @@ function setupZenGarden() {
       if (hasLastWatered) {
         const lastWatered = result.lastWateredTime;
         elapsedHours = (now - lastWatered) / (1000 * 60 * 60);
-        if (elapsedHours >= 72) {
+        if (elapsedHours >= 72) { 
           health = 'dead';
           growth = 0;
-        } else if (elapsedHours >= 36) {
+        } else if (elapsedHours >= 36) { 
           health = 'withered';
           const neglectHours = elapsedHours - 36;
           const loss = Math.floor(neglectHours * 1.5);
@@ -835,23 +835,23 @@ function setupZenGarden() {
       let stageName = 'Seedling';
       if (health === 'dead') {
         stageName = 'Dead Twig';
-        stageLabel.style.background = '#2d2424';
+        stageLabel.style.background = '#2d2424'; 
       } else if (health === 'withered') {
         stageName = 'Dry / Dying';
-        stageLabel.style.background = '#d4a373';
+        stageLabel.style.background = '#d4a373'; 
       } else {
         if (growth >= 75) {
           stageName = 'Blooming Sakura';
-          stageLabel.style.background = '#e86f88';
+          stageLabel.style.background = '#e86f88'; 
         } else if (growth >= 50) {
           stageName = 'Bonsai Tree';
-          stageLabel.style.background = '#50b386';
+          stageLabel.style.background = '#50b386'; 
         } else if (growth >= 25) {
           stageName = 'Sapling';
-          stageLabel.style.background = '#7ca8e6';
+          stageLabel.style.background = '#7ca8e6'; 
         } else {
           stageName = 'Sprout';
-          stageLabel.style.background = '#a3a3a3';
+          stageLabel.style.background = '#a3a3a3'; 
         }
       }
       stageLabel.innerText = stageName;
@@ -920,16 +920,16 @@ function setupZenGarden() {
         const lastWatered = result.lastWateredTime;
         const elapsedHours = (now - lastWatered) / (1000 * 60 * 60);
         if (elapsedHours >= 72) {
-          chrome.storage.local.set({
-            plantGrowth: 0,
-            lastWateredTime: now
+          chrome.storage.local.set({ 
+            plantGrowth: 0, 
+            lastWateredTime: now 
           }, () => {
             playReplantSound();
             updatePlantUI();
           });
         } else if (elapsedHours >= 36) {
-          chrome.storage.local.set({
-            lastWateredTime: now
+          chrome.storage.local.set({ 
+            lastWateredTime: now 
           }, () => {
             playWaterDropletSound();
             updatePlantUI();
@@ -972,7 +972,7 @@ function playWaterDropletSound() {
     initAudio();
     if (!audioCtx) return;
     const now = audioCtx.currentTime;
-    const bufferSize = audioCtx.sampleRate * 0.012;
+    const bufferSize = audioCtx.sampleRate * 0.012; 
     const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = noiseBuffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
@@ -1002,7 +1002,7 @@ function playWaterDropletSound() {
     gain1.connect(audioCtx.destination);
     osc1.start(now);
     osc1.stop(now + 0.13);
-    const delayTime = 0.05;
+    const delayTime = 0.05; 
     const osc2 = audioCtx.createOscillator();
     const gain2 = audioCtx.createGain();
     osc2.type = 'sine';
@@ -1014,7 +1014,7 @@ function playWaterDropletSound() {
     gain2.connect(audioCtx.destination);
     osc2.start(now + delayTime);
     osc2.stop(now + delayTime + 0.1);
-  } catch (err) {
+  } catch(err) {
     console.error('Audio droplet sound failed:', err);
   }
 }
@@ -1040,7 +1040,7 @@ function playReplantSound() {
     osc2.start();
     osc1.stop(audioCtx.currentTime + 0.22);
     osc2.stop(audioCtx.currentTime + 0.22);
-  } catch (err) {
+  } catch(err) {
     console.error('Audio replant sound failed:', err);
   }
 }
@@ -1216,8 +1216,8 @@ const MV_IGNORED_URL_PATTERNS = [
   /^chrome:/i, /^chrome-extension:/i, /^chrome-search:/i, /^chrome-untrusted:/i,
   /^edge:/i, /^about:/i, /^devtools:/i, /^file:/i, /^view-source:/i
 ];
-const MV_MIN_REFRESH_INTERVAL_MS = 30000;
-const MV_MAX_SLOTS = 5;
+const MV_MIN_REFRESH_INTERVAL_MS = 30000; 
+const MV_MAX_SLOTS = 5; 
 let mvLastComputeTime = 0;
 const MV_CACHE_VERSION = 2;
 function mvNormalizeHostname(hostname) {
@@ -1235,7 +1235,7 @@ function mvEscapeHtml(str) {
 }
 async function mvComputeRanking(mode, excludedSet, excludedNameSet) {
   if (!chrome.history || !chrome.history.search) {
-    return null;
+    return null; 
   }
   const periodMs = mode === 'daily' ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
   const now = Date.now();
@@ -1274,7 +1274,7 @@ async function mvComputeRanking(mode, excludedSet, excludedNameSet) {
     g.totalVisits += item.visitCount || 1;
     if (item.lastVisitTime > g.lastVisit) {
       g.lastVisit = item.lastVisitTime;
-      g.sampleUrl = item.url;
+      g.sampleUrl = item.url; 
     }
   }
   const candidates = Array.from(groups.values());
@@ -1328,9 +1328,10 @@ function mvRenderRanking(items) {
     const removeLabel = site.pinned ? `Unpin ${site.name}` : `Remove ${site.name} from Most Visited`;
     const initial = mvEscapeHtml((site.name || '?').charAt(0).toUpperCase());
     chip.innerHTML = `
-      <span class="mv-favicon">${faviconUrl
-        ? `<img src="${faviconUrl}" alt="" width="16" height="16" onerror="mvFaviconFallback(this, '${initial}')">`
-        : `<span class="mv-favicon-fallback">${initial}</span>`
+      <span class="mv-favicon">${
+        faviconUrl
+          ? `<img src="${faviconUrl}" alt="" width="16" height="16" onerror="mvFaviconFallback(this, '${initial}')">`
+          : `<span class="mv-favicon-fallback">${initial}</span>`
       }</span>
       <span class="mv-name">${mvEscapeHtml(site.name)}</span>
       <button type="button" class="mv-remove-btn" aria-label="${mvEscapeHtml(removeLabel)}" title="${mvEscapeHtml(removeLabel)}">
@@ -1397,12 +1398,12 @@ function mvParseUserSiteInput(raw) {
   if (!value) return null;
   if (!/^https?:\/\
   try {
-      const u = new URL(value);
-      if (!u.hostname.includes('.')) return null;
-      return u;
-    } catch {
-      return null;
-    }
+    const u = new URL(value);
+    if (!u.hostname.includes('.')) return null;
+    return u;
+  } catch {
+    return null;
+  }
 }
 async function mvPinSite(urlObj) {
   const rawHost = urlObj.hostname.toLowerCase();
@@ -1457,7 +1458,7 @@ async function mvHandleClick(site) {
     }
   } catch (err) {
     console.error('Most Visited: could not focus/open tab', err);
-    try { await chrome.tabs.create({ url: site.sampleUrl }); } catch { }
+    try { await chrome.tabs.create({ url: site.sampleUrl }); } catch {  }
   }
 }
 async function mvRefresh(force = false) {

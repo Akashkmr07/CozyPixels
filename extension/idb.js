@@ -1,11 +1,8 @@
-
 const CozyDB = (() => {
   const DB_NAME = 'CozyLiveWallpapers';
   const DB_VERSION = 1;
   const STORE = 'files';
-
   let dbPromise = null;
-
   function openDB() {
     if (dbPromise) return dbPromise;
     dbPromise = new Promise((resolve, reject) => {
@@ -22,7 +19,6 @@ const CozyDB = (() => {
     });
     return dbPromise;
   }
-
   async function put(record) {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -32,7 +28,6 @@ const CozyDB = (() => {
       tx.onerror = () => reject(tx.error);
     });
   }
-
   async function getAll() {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -42,7 +37,6 @@ const CozyDB = (() => {
       req.onerror = () => reject(req.error);
     });
   }
-
   async function get(id) {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -52,7 +46,6 @@ const CozyDB = (() => {
       req.onerror = () => reject(req.error);
     });
   }
-
   async function remove(id) {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -62,10 +55,8 @@ const CozyDB = (() => {
       tx.onerror = () => reject(tx.error);
     });
   }
-
   function makeId() {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   }
-
   return { put, getAll, get, remove, makeId };
 })();
