@@ -1,7 +1,7 @@
 
 const CozyLive = (() => {
   const STORAGE_KEYS = ['toggleLiveWallpaper', 'activeLiveWallpaper'];
-  let currentObjectUrl = null; // tracks the one blob URL currently in use, for cleanup
+  let currentObjectUrl = null;
 
   function els() {
     return {
@@ -418,7 +418,7 @@ const CozyLive = (() => {
     return a.source === b.source && String(a.id) === String(b.id);
   }
 
-  function renderPickerCard(entry, activeEntry, onApply, onDelete) {
+  function renderPickerCard(entry, activeEntry, onApply, onDelete, onDisable) {
     const card = document.createElement('div');
     card.className = 'live-wp-card';
     if (isSameEntry(entry, activeEntry)) card.classList.add('active');
@@ -450,7 +450,13 @@ const CozyLive = (() => {
     name.textContent = entry.name.replace(/\.[^/.]+$/, '');
     card.appendChild(name);
 
-    card.addEventListener('click', () => onApply(entry));
+    card.addEventListener('click', () => {
+      if (isSameEntry(entry, activeEntry) && onDisable) {
+        onDisable();
+      } else {
+        onApply(entry);
+      }
+    });
 
     if (entry.source === 'local' && onDelete) {
       const del = document.createElement('button');
@@ -480,8 +486,14 @@ const CozyLive = (() => {
       const all = [...local, ...catalog];
 
       if (emptyState) emptyState.style.display = all.length === 0 ? 'block' : 'none';
+      async function handleDisable() {
+        await disable();
+        syncToggleUI();
+        await refreshPickerUI();
+      }
+
       for (const entry of all) {
-        grid.appendChild(renderPickerCard(entry, activeEntry, handleApply, handleDelete));
+        grid.appendChild(renderPickerCard(entry, activeEntry, handleApply, handleDelete, handleDisable));
       }
 
       // Only blob-backed preview URLs (local GIFs) need revoking — video
@@ -757,9 +769,49 @@ const CozyLive = (() => {
     refreshPickerUI();
   }
 
+  function setupGlobalDragDrop() {
+    const overlay = document.getElementById('drag-drop-overlay');
+    if (!overlay) return;
+
+    let dragCounter = 0;
+
+    window.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dragCounter++;
+      if (e.dataTransfer.types.includes('Files')) {
+        overlay.classList.add('active');
+      }
+    });
+
+    window.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      overlay.classList.add('drag-over');
+    });
+
+    window.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dragCounter--;
+      overlay.classList.remove('drag-over');
+      if (dragCounter === 0) {
+        overlay.classList.remove('active');
+      }
+    });
+
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dragCounter = 0;
+      overlay.classList.remove('active', 'drag-over');
+      
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFileUpload(Array.from(e.dataTransfer.files));
+      }
+    });
+  }
+
   async function init() {
     setupVisibilityHandling();
     initStorageSync();
+    setupGlobalDragDrop();
     await applyFromStorage();
     setupUI();
   }
