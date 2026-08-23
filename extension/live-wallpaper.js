@@ -59,6 +59,24 @@ const CozyLive = (() => {
     }).catch(() => {});
   }
 
+  function bumpLibraryRevision() {
+    chrome.storage.local.set({ liveWallpaperLibraryRev: Date.now() }).catch(() => {});
+  }
+
+  function initStorageSync() {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== 'local') return;
+      if (changes.toggleLiveWallpaper || changes.activeLiveWallpaper) {
+        applyFromStorage();
+        syncToggleUI();
+        refreshPickerUI();
+      }
+      if (changes.liveWallpaperLibraryRev) {
+        refreshPickerUI();
+      }
+    });
+  }
+
   function showStatus(message) {
     const statusEl = document.getElementById('live-wp-status');
     if (!statusEl) return;
@@ -490,6 +508,7 @@ const CozyLive = (() => {
 
   async function handleDelete(entry) {
     await CozyDB.remove(entry.id);
+    bumpLibraryRevision();
     const result = await chrome.storage.local.get(['activeLiveWallpaper']);
     if (result.activeLiveWallpaper && isSameEntry(result.activeLiveWallpaper, entry)) {
       await disable();
@@ -740,6 +759,7 @@ const CozyLive = (() => {
 
   async function init() {
     setupVisibilityHandling();
+    initStorageSync();
     await applyFromStorage();
     setupUI();
   }

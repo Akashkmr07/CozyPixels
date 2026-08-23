@@ -2011,6 +2011,18 @@ chrome.runtime.onMessage.addListener((message) => {
 
 setInterval(updateClock, 1000);
 
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'local') return;
+  const liveWallpaperKeys = ['toggleLiveWallpaper', 'activeLiveWallpaper', 'liveWallpaperLibraryRev', 'plantGrowth', 'lastWateredTime'];
+  const hasOtherChanges = Object.keys(changes).some(k => !liveWallpaperKeys.includes(k));
+  if (hasOtherChanges) {
+    updateUI();
+  }
+  if (changes.focusGoal || changes.focusCompleted) {
+    setupFocusGoal();
+  }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   setupFocusGoal();
   setupWallpaperActions();
