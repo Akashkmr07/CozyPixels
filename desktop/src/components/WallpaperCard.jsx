@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { LuImage, LuRefreshCw, LuMonitor, LuDownload, LuStar, LuTrash } from 'react-icons/lu';
+import { LuImage, LuRefreshCw, LuMonitor, LuDownload, LuStar, LuTrash, LuPlay } from 'react-icons/lu';
 import { formatWallpaperName } from '../utils.js';
+import { useCachedImage } from '../useCachedImage.js';
 
 const STATIC_URL = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public';
 
 export const WallpaperCard = React.memo(({ wallpaper, onSetWallpaper, onPreview, onDownload, setting, isFavorite, onToggleFavorite, onDelete, selectionMode, isSelected, onToggleSelect }) => {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
+  const [imageFallback, setImageFallback] = useState(false);
   const cardRef = useRef(null);
 
   const baseImageUrl = useMemo(() => 
@@ -16,8 +18,25 @@ export const WallpaperCard = React.memo(({ wallpaper, onSetWallpaper, onPreview,
       : `${STATIC_URL}${wallpaper.path}`,
     [wallpaper.path]
   );
+  
+  const cachedImageUrl = useCachedImage(baseImageUrl);
+  const imageUrl = imageFallback ? baseImageUrl : (cachedImageUrl || baseImageUrl);
+
+  const handleImageError = () => {
+    if (!imageFallback && cachedImageUrl !== baseImageUrl) {
+      setImageFallback(true);
+      setLoaded(false);
+    } else {
+      setError(true);
+    }
+  };
 
   const displayName = useMemo(() => formatWallpaperName(wallpaper.name), [wallpaper.name]);
+
+  const isVideo = useMemo(() => {
+    const p = wallpaper.path.toLowerCase();
+    return p.endsWith('.mp4') || p.endsWith('.webm') || p.endsWith('.mkv');
+  }, [wallpaper.path]);
 
   return (
     <div
@@ -44,16 +63,33 @@ export const WallpaperCard = React.memo(({ wallpaper, onSetWallpaper, onPreview,
       {!loaded && !error && <div className="card__skeleton" />}
       {error ? (
         <div className="card__error"><LuImage size={22} /><span>Failed to load</span></div>
+      ) : isVideo ? (
+        <video
+          src={imageUrl}
+          className="card__img"
+          autoPlay
+          loop
+          muted
+          playsInline
+          onLoadedData={() => setLoaded(true)}
+          onError={handleImageError}
+        />
       ) : (
         <img
-          src={baseImageUrl}
+          src={imageUrl}
           alt={displayName}
           onLoad={() => setLoaded(true)}
-          onError={() => setError(true)}
+          onError={handleImageError}
           className="card__img"
           loading="lazy"
           decoding="async"
         />
+      )}
+      
+      {isVideo && (
+        <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '12px', zIndex: 5 }}>
+          <LuPlay size={14} color="#fff" />
+        </div>
       )}
       {loaded && (
         <div className="card__overlay">
@@ -82,6 +118,14 @@ export const WallpaperCard = React.memo(({ wallpaper, onSetWallpaper, onPreview,
                 className="card__btn card__btn--danger"
                 onClick={e => { e.stopPropagation(); onDelete && onDelete(wallpaper); }}
                 title="Delete local wallpaper"
+              >
+                <LuTrash size={15} />
+              </button>
+            ) : cachedImageUrl && cachedImageUrl.startsWith('cozy://') ? (
+              <button
+                className="card__btn card__btn--danger"
+                onClick={e => { e.stopPropagation(); onDelete && onDelete(wallpaper, true); }}
+                title="Remove from Cache"
               >
                 <LuTrash size={15} />
               </button>

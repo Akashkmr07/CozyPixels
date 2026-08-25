@@ -34,7 +34,12 @@ struct WallpaperInfo {
 }
 
 #[tauri::command]
-async fn set_wallpaper(url: String) -> Result<String, String> {
+async fn set_wallpaper(app: tauri::AppHandle, url: String) -> Result<String, String> {
+    #[cfg(target_os = "windows")]
+    if let Some(video_window) = app.get_webview_window("video_bg") {
+        video_window.hide().map_err(|e| format!("Failed to stop live wallpaper: {}", e))?;
+    }
+
     if !url.starts_with("http://") && !url.starts_with("https://") {
         set_wallpaper_os(&url)?;
         return Ok(format!("Local wallpaper set"));
@@ -315,7 +320,7 @@ fn scan_local_directory(path: String) -> Result<Vec<String>, String> {
             if file_type.is_file() {
                 if let Some(name) = entry.file_name().to_str() {
                     let name_lower = name.to_lowercase();
-                    if name_lower.ends_with(".jpg") || name_lower.ends_with(".jpeg") || name_lower.ends_with(".png") || name_lower.ends_with(".webp") || name_lower.ends_with(".gif") || name_lower.ends_with(".bmp") {
+                    if name_lower.ends_with(".jpg") || name_lower.ends_with(".jpeg") || name_lower.ends_with(".png") || name_lower.ends_with(".webp") || name_lower.ends_with(".gif") || name_lower.ends_with(".bmp") || name_lower.ends_with(".mp4") || name_lower.ends_with(".webm") || name_lower.ends_with(".mkv") {
                         if let Some(path_str) = entry.path().to_str() {
                             images.push(path_str.to_string());
                         }
@@ -393,6 +398,178 @@ async fn download_and_save_wallpaper(url: String, path: String) -> Result<(), St
     std::fs::write(&path, bytes).map_err(|e| format!("Failed to write file: {}", e))
 }
 
+fn get_cache_dir() -> std::path::PathBuf {
+    let dir = std::env::temp_dir().join("cozypixels-cache");
+    let _ = std::fs::create_dir_all(&dir);
+    dir
+}
+
+#[tauri::command]
+async fn get_cached_image(url: String) -> Result<String, String> {
+    let filename = url.split('/').last().unwrap_or("image.jpg").to_string();
+    let cache_dir = get_cache_dir();
+    let file_path = cache_dir.join(&filename);
+    
+    if file_path.exists() {
+        return Ok(format!("cozy://localhost/{}", file_path.to_string_lossy().replace('\\', "/")));
+    }
+    
+    Ok(url)
+}
+
+#[tauri::command]
+async fn sync_all_wallpapers(urls: Vec<String>) -> Result<(), String> {
+    tauri::async_runtime::spawn(async move {
+        let cache_dir = get_cache_dir();
+        
+        for url in urls {
+            let filename = url.split('/').last().unwrap_or("image.jpg").to_string();
+            let file_path = cache_dir.join(&filename);
+            
+            if !file_path.exists() {
+                if let Ok(response) = http_client().get(&url).send().await {
+                    if let Ok(bytes) = response.bytes().await {
+                        let _ = tokio::fs::write(&file_path, bytes).await;
+                    }
+                }
+            }
+        }
+    });
+    
+    Ok(())
+}
+
+#[tauri::command]
+async fn delete_cached_wallpaper(url: String) -> Result<(), String> {
+    let filename = url.split('/').last().unwrap_or("image.jpg").to_string();
+    let cache_dir = get_cache_dir();
+    let file_path = cache_dir.join(&filename);
+    
+    if file_path.exists() {
+        std::fs::remove_file(&file_path).map_err(|e| format!("Failed to delete: {}", e))?;
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+use winapi::shared::minwindef::{BOOL, LPARAM};
+#[cfg(target_os = "windows")]
+use winapi::shared::windef::HWND;
+#[cfg(target_os = "windows")]
+use std::ptr::null_mut;
+
+#[cfg(target_os = "windows")]
+static mut WORKERW: HWND = null_mut();
+
+#[cfg(target_os = "windows")]
+unsafe extern "system" fn enum_windows_proc(hwnd: HWND, _: LPARAM) -> BOOL {
+    use winapi::um::winuser::FindWindowExA;
+    let p = FindWindowExA(hwnd, null_mut(), b"SHELLDLL_DefView\0".as_ptr() as *const i8, null_mut());
+    if p != null_mut() {
+        let worker = FindWindowExA(null_mut(), hwnd, b"WorkerW\0".as_ptr() as *const i8, null_mut());
+        if worker != null_mut() {
+            WORKERW = worker;
+        }
+    }
+    1
+}
+
+#[cfg(target_os = "windows")]
+pub fn get_workerw() -> HWND {
+    use winapi::um::winuser::{EnumWindows, FindWindowA, SendMessageTimeoutA, SMTO_NORMAL};
+    unsafe {
+        WORKERW = null_mut();
+        let progman = FindWindowA(b"Progman\0".as_ptr() as *const i8, null_mut());
+        if progman != null_mut() {
+            let mut result: usize = 0;
+            SendMessageTimeoutA(
+                progman,
+                0x052C,
+                0,
+                0,
+                SMTO_NORMAL,
+                1000,
+                &mut result,
+            );
+            EnumWindows(Some(enum_windows_proc), 0);
+        }
+
+        if WORKERW != null_mut() { WORKERW } else { progman }
+    }
+}
+
+#[tauri::command]
+async fn set_video_wallpaper(
+    app: tauri::AppHandle,
+    url: String,
+    player_url: Option<String>,
+) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        use winapi::um::winuser::{
+            GetSystemMetrics, SetParent, SetWindowLongW, SetWindowPos,
+            GWL_STYLE, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN,
+            SWP_NOACTIVATE, SWP_SHOWWINDOW, WS_CHILD, WS_VISIBLE,
+        };
+        let window_label = "video_bg";
+        let video_url = player_url.unwrap_or_else(|| url.clone());
+        let window = if let Some(w) = app.get_webview_window(window_label) {
+            w
+        } else {
+            let encoded_url: String = url::form_urlencoded::byte_serialize(video_url.as_bytes()).collect();
+            tauri::WebviewWindowBuilder::new(
+                &app,
+                window_label,
+                tauri::WebviewUrl::App(format!("/?videoUrl={}", encoded_url).parse().unwrap())
+            )
+            .title("CozyPixels Video Wallpaper")
+            .decorations(false)
+            .transparent(true)
+            .skip_taskbar(true)
+            .visible(false)
+            .build()
+            .map_err(|e| e.to_string())?
+        };
+
+        let _ = window.emit("change-video", &video_url);
+
+        let worker_w = get_workerw();
+        if worker_w == null_mut() {
+            return Err("Could not find the Windows desktop host window".to_string());
+        }
+
+        let hwnd = window.hwnd().map_err(|e| e.to_string())?;
+        let hwnd_ptr: HWND = unsafe { std::mem::transmute(hwnd) };
+        let width = unsafe { GetSystemMetrics(SM_CXVIRTUALSCREEN) };
+        let height = unsafe { GetSystemMetrics(SM_CYVIRTUALSCREEN) };
+        if width <= 0 || height <= 0 {
+            return Err("Could not determine the desktop size".to_string());
+        }
+
+        unsafe {
+            SetParent(hwnd_ptr, worker_w);
+            SetWindowLongW(hwnd_ptr, GWL_STYLE, (WS_CHILD | WS_VISIBLE) as i32);
+            SetWindowPos(
+                hwnd_ptr,
+                null_mut(),
+                0,
+                0,
+                width,
+                height,
+                SWP_NOACTIVATE | SWP_SHOWWINDOW,
+            );
+        }
+    }
+    
+    // For non-Windows platforms, we can just throw an error
+    #[cfg(not(target_os = "windows"))]
+    {
+        return Err("Video wallpapers are currently only supported on Windows.".to_string());
+    }
+    
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -439,7 +616,10 @@ pub fn run() {
                 || lower_path.ends_with(".jpeg")
                 || lower_path.ends_with(".gif")
                 || lower_path.ends_with(".webp")
-                || lower_path.ends_with(".bmp");
+                || lower_path.ends_with(".bmp")
+                || lower_path.ends_with(".mp4")
+                || lower_path.ends_with(".webm")
+                || lower_path.ends_with(".mkv");
 
             if !is_valid_image {
                 return tauri::http::Response::builder()
@@ -449,7 +629,13 @@ pub fn run() {
             }
 
             if let Ok(metadata) = std::fs::metadata(&local_path) {
-                if metadata.len() > 50 * 1024 * 1024 {
+                // Increase limit to 2GB for videos
+                let limit = if lower_path.ends_with(".mp4") || lower_path.ends_with(".webm") || lower_path.ends_with(".mkv") {
+                    2000 * 1024 * 1024 
+                } else {
+                    50 * 1024 * 1024
+                };
+                if metadata.len() > limit {
                     return tauri::http::Response::builder()
                         .status(413)
                         .body(Vec::new())
@@ -464,6 +650,12 @@ pub fn run() {
                     "image/gif"
                 } else if lower_path.ends_with(".webp") {
                     "image/webp"
+                } else if lower_path.ends_with(".mp4") {
+                    "video/mp4"
+                } else if lower_path.ends_with(".webm") {
+                    "video/webm"
+                } else if lower_path.ends_with(".mkv") {
+                    "video/x-matroska"
                 } else {
                     "image/jpeg"
                 };
@@ -536,6 +728,10 @@ pub fn run() {
             read_file_bytes,
             delete_local_wallpaper,
             download_and_save_wallpaper,
+            get_cached_image,
+            delete_cached_wallpaper,
+            set_video_wallpaper,
+            sync_all_wallpapers,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

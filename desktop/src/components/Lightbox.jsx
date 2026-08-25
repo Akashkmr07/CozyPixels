@@ -4,53 +4,40 @@ import { invoke } from '@tauri-apps/api/core';
 import { LuChevronLeft, LuChevronRight, LuRefreshCw, LuMonitor, LuDownload, LuX } from 'react-icons/lu';
 import { useFocusTrap } from '../useFocusTrap.js';
 import { formatWallpaperName } from '../utils.js';
+import { useCachedImage } from '../useCachedImage.js';
 
 const STATIC_URL = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public';
 
 export const Lightbox = ({ wallpaper, onClose, onSetWallpaper, onSetLockScreen, onDownload, setting, settingLock, onNext, onPrev, hasNext, hasPrev }) => {
-  const [imgSrc, setImgSrc] = useState(null);
+  const [direction, setDirection] = useState(0);
+  const [previewFallback, setPreviewFallback] = useState(false);
   const trapRef = useFocusTrap(true);
+
+  const handleNext = () => { setDirection(1); onNext(); };
+  const handlePrev = () => { setDirection(-1); onPrev(); };
 
   useEffect(() => {
     const fn = e => { 
       if (e.key === 'Escape') onClose(); 
-      if (e.key === 'ArrowRight' && hasNext) onNext();
-      if (e.key === 'ArrowLeft' && hasPrev) onPrev();
+      if (e.key === 'ArrowRight' && hasNext) handleNext();
+      if (e.key === 'ArrowLeft' && hasPrev) handlePrev();
     };
     document.addEventListener('keydown', fn);
     return () => document.removeEventListener('keydown', fn);
   }, [onClose, onNext, onPrev, hasNext, hasPrev]);
 
-  useEffect(() => {
-    let isMounted = true;
-    let currentBlobUrl = null;
-    if (!wallpaper) return;
-    const baseImageUrl = wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://') ? wallpaper.path : `${STATIC_URL}${wallpaper.path}`;
+  useEffect(() => setPreviewFallback(false), [wallpaper?.path]);
+
+  const baseImageUrl = wallpaper?.path?.startsWith('http') || wallpaper?.path?.startsWith('cozy://') 
+    ? wallpaper.path 
+    : `${STATIC_URL}${wallpaper?.path}`;
     
-    if (wallpaper.path.startsWith('http') && !wallpaper.realPath) {
-      invoke('fetch_image_bytes', { url: wallpaper.path })
-        .then(bytes => {
-          if (!isMounted) return;
-          const blob = new Blob([new Uint8Array(bytes)]);
-          currentBlobUrl = URL.createObjectURL(blob);
-          setImgSrc(currentBlobUrl);
-        })
-        .catch(err => {
-          if (!isMounted) return;
-          setImgSrc(baseImageUrl);
-        });
-    } else {
-      setImgSrc(baseImageUrl);
-    }
-    
-    return () => {
-      isMounted = false;
-      if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
-    };
-  }, [wallpaper]);
+  const cachedUrl = useCachedImage(baseImageUrl);
+  const previewUrl = previewFallback ? baseImageUrl : cachedUrl;
 
   if (!wallpaper) return null;
   const displayName = formatWallpaperName(wallpaper.name);
+  const isVideo = wallpaper.path.toLowerCase().endsWith('.mp4') || wallpaper.path.toLowerCase().endsWith('.webm') || wallpaper.path.toLowerCase().endsWith('.mkv');
 
   return (
     <motion.div className="lightbox" onClick={onClose}
@@ -63,26 +50,60 @@ export const Lightbox = ({ wallpaper, onClose, onSetWallpaper, onSetLockScreen, 
         exit={{ scale: 0.95, opacity: 0, y: 10 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}>
         {hasPrev && (
-          <button className="lightbox__nav lightbox__nav--prev" onClick={(e) => { e.stopPropagation(); onPrev(); }} aria-label="Previous wallpaper">
+          <button className="lightbox__nav lightbox__nav--prev" onClick={(e) => { e.stopPropagation(); handlePrev(); }} aria-label="Previous wallpaper">
             <LuChevronLeft size={24} />
           </button>
         )}
-        <AnimatePresence mode="wait">
-          {imgSrc && (
-            <motion.img 
-              key={imgSrc} 
-              src={imgSrc} 
-              alt={displayName} 
-              className="lightbox__img" 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            />
-          )}
-        </AnimatePresence>
+        <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', overflow: 'hidden', borderRadius: '12px 12px 0 0' }}>
+          <AnimatePresence initial={false} custom={direction}>
+            {previewUrl && (
+              isVideo ? (
+                <motion.video 
+                  key={wallpaper.path} 
+                  src={previewUrl} 
+                  onError={() => cachedUrl !== baseImageUrl && setPreviewFallback(true)}
+                  className="lightbox__img" 
+                  style={{ position: 'absolute', top: 0, left: 0 }}
+                  custom={direction}
+                  variants={{
+                    enter: (dir) => ({ x: dir > 0 ? '100%' : '-100%', opacity: 0 }),
+                    center: { x: 0, opacity: 1, zIndex: 1 },
+                    exit: (dir) => ({ x: dir > 0 ? '-100%' : '100%', opacity: 0, zIndex: 0 })
+                  }}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
+              ) : (
+                <motion.img 
+                  key={wallpaper.path} 
+                  src={previewUrl} 
+                  alt={displayName} 
+                  onError={() => cachedUrl !== baseImageUrl && setPreviewFallback(true)}
+                  className="lightbox__img" 
+                  style={{ position: 'absolute', top: 0, left: 0 }}
+                  custom={direction}
+                  variants={{
+                    enter: (dir) => ({ x: dir > 0 ? '100%' : '-100%', opacity: 0 }),
+                    center: { x: 0, opacity: 1, zIndex: 1 },
+                    exit: (dir) => ({ x: dir > 0 ? '-100%' : '100%', opacity: 0, zIndex: 0 })
+                  }}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                />
+              )
+            )}
+          </AnimatePresence>
+        </div>
         {hasNext && (
-          <button className="lightbox__nav lightbox__nav--next" onClick={(e) => { e.stopPropagation(); onNext(); }} aria-label="Next wallpaper">
+          <button className="lightbox__nav lightbox__nav--next" onClick={(e) => { e.stopPropagation(); handleNext(); }} aria-label="Next wallpaper">
             <LuChevronRight size={24} />
           </button>
         )}
@@ -116,8 +137,8 @@ export const Lightbox = ({ wallpaper, onClose, onSetWallpaper, onSetLockScreen, 
               <button
                 className={`lb-btn lb-btn--ghost ${(setting || settingLock) ? 'loading' : ''}`}
                 onClick={async () => {
-                  await onSetWallpaper(wallpaper);
-                  await onSetLockScreen(wallpaper);
+                  const wallpaperSet = await onSetWallpaper(wallpaper);
+                  if (wallpaperSet) await onSetLockScreen(wallpaper);
                 }}
                 disabled={setting || settingLock}
                 title="Set as Wallpaper & Lock Screen"

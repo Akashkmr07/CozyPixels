@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useDeferredValue, useMemo } from 'react';
-import { invoke, convertFileSrc } from '@tauri-apps/api/core';
+import { invoke as tauriInvoke, convertFileSrc } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { listen } from '@tauri-apps/api/event';
+import { listen as tauriListen } from '@tauri-apps/api/event';
 import { enable, disable } from '@tauri-apps/plugin-autostart';
 import { check } from '@tauri-apps/plugin-updater';
 import { open, save } from '@tauri-apps/plugin-dialog';
@@ -22,15 +22,33 @@ import { WallpaperCard } from './components/WallpaperCard.jsx';
 import { Lightbox } from './components/Lightbox.jsx';
 import { UpdateModal } from './components/UpdateModal.jsx';
 import { ConfirmModal } from './components/ConfirmModal.jsx';
+import { VideoBackgroundPlayer } from './components/VideoBackgroundPlayer.jsx';
 import { getVersion } from '@tauri-apps/api/app';
+
+const isTauri = () => Boolean(window.__TAURI_INTERNALS__);
+const invoke = (...args) => isTauri()
+  ? tauriInvoke(...args)
+  : Promise.reject(new Error('Run this action in the CozyPixels desktop app'));
+const listen = (...args) => isTauri()
+  ? tauriListen(...args)
+  : Promise.resolve(() => {});
 
 
 const API_URL = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public/wallpapers.json';
 const STATIC_URL = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public';
 
 export default function App() {
+  const params = new URLSearchParams(window.location.search);
+  const videoUrl = params.get('videoUrl');
+
+  if (videoUrl) {
+    return <VideoBackgroundPlayer initialUrl={videoUrl} />;
+  }
+
   const [appVersion, setAppVersion] = useState('');
-  useEffect(() => { getVersion().then(setAppVersion); }, []);
+  useEffect(() => {
+    if (isTauri()) getVersion().then(setAppVersion).catch(() => {});
+  }, []);
   const updatesEnabled = !import.meta.env.DEV;
   const [wallpapers, setWallpapers] = useState([]);
   const [localFolders, setLocalFolders] = useState(() => JSON.parse(localStorage.getItem('cozy_localFolders') || '[]'));
@@ -148,7 +166,14 @@ export default function App() {
 
     fetch(API_URL, { signal: controller.signal })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(d => { if (Array.isArray(d)) { setWallpapers(d); setFetchError(false); } })
+      .then(d => { 
+        if (Array.isArray(d)) { 
+          setWallpapers(d); 
+          setFetchError(false); 
+          const urls = d.map(w => w.path.startsWith('http') ? w.path : `${STATIC_URL}${w.path}`);
+          invoke('sync_all_wallpapers', { urls }).catch(console.error);
+        } 
+      })
       .catch(e => {
         if (e.name !== 'AbortError') {
           console.error('Failed to fetch wallpapers:', e);
@@ -354,24 +379,43 @@ export default function App() {
   }, [addToast]);
 
   const handleSetWallpaper = useCallback(async (wallpaper) => {
+    if (!wallpaper?.path) {
+      addToast('Wallpaper is unavailable', 'error');
+      return false;
+    }
     const url = wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://') 
        ? wallpaper.path 
        : `${STATIC_URL}${wallpaper.path}`;
        
     const rustUrl = wallpaper.realPath || (url.startsWith('cozy://localhost/') ? url.replace('cozy://localhost/', '') : url);
        
+    const isVideo = wallpaper.path.toLowerCase().endsWith('.mp4') || wallpaper.path.toLowerCase().endsWith('.webm') || wallpaper.path.toLowerCase().endsWith('.mkv');
+       
     setSettingWallpaper(wallpaper.path);
     try {
-      await invoke('set_wallpaper', { url: rustUrl });
+      if (isVideo) {
+        const playerUrl = rustUrl.startsWith('http://') || rustUrl.startsWith('https://')
+          ? rustUrl
+          : convertFileSrc(rustUrl, 'cozy');
+        await invoke('set_video_wallpaper', { url: rustUrl, playerUrl });
+      } else {
+        await invoke('set_wallpaper', { url: rustUrl });
+      }
       addToast('Wallpaper set', 'wallpaper');
+      return true;
     } catch (err) {
       addToast(`${err}`, 'error');
+      return false;
     } finally {
       setSettingWallpaper(null);
     }
   }, [addToast]);
 
   const handleSetLockScreen = useCallback(async (wallpaper) => {
+    if (!wallpaper?.path) {
+      addToast('Wallpaper is unavailable', 'error');
+      return false;
+    }
     const url = wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://') 
        ? wallpaper.path 
        : `${STATIC_URL}${wallpaper.path}`;
@@ -382,14 +426,20 @@ export default function App() {
     try {
       await invoke('set_lock_screen', { url: rustUrl });
       addToast('Lock screen updated', 'success');
+      return true;
     } catch (err) {
       addToast(`${err}`, 'error');
+      return false;
     } finally {
       setSettingLockScreen(null);
     }
   }, [addToast]);
 
   const handleDownload = useCallback(async (wallpaper) => {
+    if (!wallpaper?.path) {
+      addToast('Wallpaper is unavailable', 'error');
+      return;
+    }
     const url = wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://') 
       ? wallpaper.path 
       : `${STATIC_URL}${wallpaper.path}`;
@@ -524,19 +574,30 @@ export default function App() {
     }
   }, [selectedWallpapers, addToast, customConfirm]);
 
-  const handleDeleteLocal = useCallback(async (wallpaper) => {
+  const handleDeleteLocal = useCallback(async (wallpaper, isCache = false) => {
     try {
-      const confirmed = await customConfirm(`Are you sure you want to permanently delete "${wallpaper.name}" from your computer?`, { title: 'Delete Wallpaper', kind: 'warning' });
+      const confirmed = await customConfirm(
+        isCache 
+          ? `Are you sure you want to remove "${wallpaper.name}" from local cache?`
+          : `Are you sure you want to permanently delete "${wallpaper.name}" from your computer?`, 
+        { title: isCache ? 'Clear Cache' : 'Delete Wallpaper', kind: 'warning' }
+      );
       if (confirmed) {
-        const realPath = wallpaper.realPath || wallpaper.path;
-        await invoke('delete_local_wallpaper', { path: realPath });
-        setCustomWallpapers(prev => prev.filter(w => w.path !== wallpaper.path));
-        setFavorites(prev => {
-          const newFavs = prev.filter(p => p !== wallpaper.path);
-          localStorage.setItem('cozy_favorites', JSON.stringify(newFavs));
-          return newFavs;
-        });
-        addToast(`Deleted ${wallpaper.name}`, 'success');
+        if (isCache) {
+          await invoke('delete_cached_wallpaper', { url: wallpaper.path });
+          addToast(`Removed ${wallpaper.name} from cache`, 'success');
+          // Note: UI will gracefully fallback to http URL on next render or restart
+        } else {
+          const realPath = wallpaper.realPath || wallpaper.path;
+          await invoke('delete_local_wallpaper', { path: realPath });
+          setCustomWallpapers(prev => prev.filter(w => w.path !== wallpaper.path));
+          setFavorites(prev => {
+            const newFavs = prev.filter(p => p !== wallpaper.path);
+            localStorage.setItem('cozy_favorites', JSON.stringify(newFavs));
+            return newFavs;
+          });
+          addToast(`Deleted ${wallpaper.name}`, 'success');
+        }
       }
     } catch (err) {
       console.error(err);
@@ -854,7 +915,6 @@ export default function App() {
         <AnimatePresence mode="wait">
           {preview && (
             <Lightbox
-              key={preview.path}
               wallpaper={preview}
               onClose={() => setPreview(null)}
               onSetWallpaper={handleSetWallpaper}

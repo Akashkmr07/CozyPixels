@@ -1,6 +1,6 @@
 [package]
 name = "desktop"
-version = "1.1.0"
+version = "1.3.0"
 description = "CozyPixels Desktop - Wallpaper Manager"
 authors = ["Nikhil Yadav <@yadavnikhil03>"]
 edition = "2021"
@@ -24,6 +24,7 @@ tauri-plugin-process = "2"
 url = "2"
 percent-encoding = "2"
 lru = "0.18.2"
+winapi = { version = "0.3", features = ["winuser", "libloaderapi", "windef"] }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["winuser", "libloaderapi"] }
