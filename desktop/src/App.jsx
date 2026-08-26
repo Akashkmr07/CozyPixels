@@ -162,7 +162,7 @@ export default function App() {
   const loaderRef = useCallback(node => {
     if (observerRef.current) observerRef.current.disconnect();
     observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) setDisplayCount(c => c + 48);
+      if (entries[0].isIntersecting) setDisplayCount(c => c + 24);
     }, { rootMargin: '300px' });
     if (node) observerRef.current.observe(node);
   }, []);
@@ -927,7 +927,7 @@ export default function App() {
             />
           ))}
           {filtered.length > displayCount && (
-            <div ref={loaderRef} style={{ width: '100%', height: '40px', gridColumn: '1 / -1' }} />
+            <div ref={loaderRef} style={{ width: '100%', height: '40px', gridColumn: '1 / -1', contentVisibility: 'auto' }} />
           )}
         </div>
         <AnimatePresence mode="wait">

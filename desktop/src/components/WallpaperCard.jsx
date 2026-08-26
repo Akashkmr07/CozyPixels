@@ -78,6 +78,7 @@ export const WallpaperCard = React.memo(({ wallpaper, onSetWallpaper, onPreview,
           onError={handleImageError}
           className="card__img"
           loading="lazy"
+          fetchPriority="low"
           decoding="async"
         />
       )}

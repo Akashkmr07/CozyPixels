@@ -519,6 +519,8 @@ body {
 .card {
   position: relative;
   contain: layout paint;
+  content-visibility: auto;
+  contain-intrinsic-size: 200px;
   border-radius: 16px;
   overflow: hidden;
   height: 200px;
