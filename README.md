@@ -101,6 +101,8 @@ And massive credit to the original wallpaper repositories and sources:
 - [r/unixporn](https://www.reddit.com/r/unixporn) and [r/wallpaper](https://www.reddit.com/r/wallpaper)
 - And all the talented artists on X and Pinterest.
 
+**Additional collection credit:** [Michael Scopic](https://github.com/michaelScopic/) collected and organized the additional wallpaper categories imported into CozyPixels.
+
 **Note to Artists:** If you recognize your artwork here and it isn't credited, please reach out to `@yadavnikhil03` or the original curator. We're happy to add your profile or remove the artwork upon request.
 
 ---

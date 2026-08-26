@@ -2,10 +2,13 @@ const fs = require('fs');
 const path = require('path');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'frontend', 'public');
-const WALLPAPER_DIRS = ['Catppuccin', 'Nord', 'One Dark'];
+const WALLPAPER_DIRS = fs.readdirSync(PUBLIC_DIR, { withFileTypes: true })
+  .filter(entry => entry.isDirectory())
+  .map(entry => entry.name)
+  .filter(name => name !== 'node_modules');
 
 let allWallpapers = [];
-let seenNames = new Set();
+let seenPaths = new Set();
 
 const findImages = (dir, category) => {
   let results = [];
@@ -18,7 +21,7 @@ const findImages = (dir, category) => {
         results = results.concat(findImages(filePath, category));
       } else {
         const ext = path.extname(file).toLowerCase();
-        if (['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)) {
+        if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.mp4', '.webm', '.mkv'].includes(ext)) {
           const relativePath = path.relative(PUBLIC_DIR, filePath).replace(/\\/g, '/');
           const encodedPath = relativePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
           results.push({
@@ -41,8 +44,8 @@ WALLPAPER_DIRS.forEach(category => {
   if (fs.existsSync(dirPath)) {
     const images = findImages(dirPath, category);
     images.forEach(img => {
-      if (!seenNames.has(img.name)) {
-        seenNames.add(img.name);
+      if (!seenPaths.has(img.path)) {
+        seenPaths.add(img.path);
         allWallpapers.push(img);
       }
     });
