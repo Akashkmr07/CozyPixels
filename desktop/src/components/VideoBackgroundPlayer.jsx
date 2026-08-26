@@ -23,14 +23,14 @@ export const VideoBackgroundPlayer = ({ initialUrl }) => {
   if (!videoUrl) return null;
 
   return (
-    <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', backgroundColor: 'black' }}>
+    <div style={{ position: 'fixed', inset: 0, width: '100vw', height: '100vh', overflow: 'hidden', backgroundColor: 'black', margin: 0 }}>
       <video 
         src={videoUrl} 
         autoPlay 
         loop 
         muted 
         playsInline 
-        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', margin: 0 }}
       />
     </div>
   );

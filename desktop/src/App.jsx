@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useDeferredValue, useMemo } from 'react';
 import { invoke as tauriInvoke, convertFileSrc } from '@tauri-apps/api/core';
-import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen as tauriListen } from '@tauri-apps/api/event';
 import { enable, disable } from '@tauri-apps/plugin-autostart';
 import { check } from '@tauri-apps/plugin-updater';
@@ -10,7 +9,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from './useFocusTrap.js';
 import {
   LuSearch, LuDownload, LuImage, LuLayoutGrid,
-  LuRefreshCw, LuCheck, LuX, LuTrash,
+  LuRefreshCw, LuX, LuTrash,
   LuMonitor, LuSparkles, LuSun, LuMoon,
   LuChevronDown, LuChevronUp, LuChevronLeft, LuChevronRight,
   LuFolderPlus, LuTriangleAlert, LuStar, LuMousePointerClick
@@ -50,7 +49,14 @@ export default function App() {
     if (isTauri()) getVersion().then(setAppVersion).catch(() => {});
   }, []);
   const updatesEnabled = !import.meta.env.DEV;
-  const [wallpapers, setWallpapers] = useState([]);
+  const [wallpapers, setWallpapers] = useState(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem('cozy_wallpapers_catalog') || '[]');
+      return Array.isArray(cached) ? cached : [];
+    } catch {
+      return [];
+    }
+  });
   const [localFolders, setLocalFolders] = useState(() => JSON.parse(localStorage.getItem('cozy_localFolders') || '[]'));
   const [customWallpapers, setCustomWallpapers] = useState([]);
   const allWallpapers = useMemo(() => [...customWallpapers, ...wallpapers], [customWallpapers, wallpapers]);
@@ -69,11 +75,19 @@ export default function App() {
   const [category, setCategory] = useState('All');
   const [search, setSearch] = useState('');
   const [fetchError, setFetchError] = useState(false);
-  const [fetching, setFetching] = useState(true);
+  const [fetching, setFetching] = useState(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem('cozy_wallpapers_catalog') || '[]');
+      return !Array.isArray(cached) || cached.length === 0;
+    } catch {
+      return true;
+    }
+  });
   const [defaultDownloadPath, setDefaultDownloadPath] = useState(() => localStorage.getItem('cozy_download_path') || '');
   const [showSplash, setShowSplash] = useState(true);
   const splashStartRef = useRef(Date.now());
   const fetchAbortRef = useRef(null);
+  const hasCachedCatalogRef = useRef(wallpapers.length > 0);
   const deferredSearch = useDeferredValue(search);
   const [displayCount, setDisplayCount] = useState(48);
   const [preview, setPreview] = useState(null);
@@ -162,13 +176,14 @@ export default function App() {
     const controller = new AbortController();
     fetchAbortRef.current = controller;
     setFetchError(false);
-    setFetching(true);
+    setFetching(!hasCachedCatalogRef.current);
 
     fetch(API_URL, { signal: controller.signal })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => { 
         if (Array.isArray(d)) { 
           setWallpapers(d); 
+          localStorage.setItem('cozy_wallpapers_catalog', JSON.stringify(d));
           setFetchError(false); 
           const urls = d.map(w => w.path.startsWith('http') ? w.path : `${STATIC_URL}${w.path}`);
           invoke('sync_all_wallpapers', { urls }).catch(console.error);
@@ -177,7 +192,7 @@ export default function App() {
       .catch(e => {
         if (e.name !== 'AbortError') {
           console.error('Failed to fetch wallpapers:', e);
-          setFetchError(true);
+          setFetchError(!hasCachedCatalogRef.current);
         }
       })
       .finally(() => setFetching(false));
@@ -584,9 +599,12 @@ export default function App() {
       );
       if (confirmed) {
         if (isCache) {
-          await invoke('delete_cached_wallpaper', { url: wallpaper.path });
+          const cacheUrl = wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://')
+            ? wallpaper.path
+            : `${STATIC_URL}${wallpaper.path}`;
+          await invoke('delete_cached_wallpaper', { url: cacheUrl });
+          window.dispatchEvent(new CustomEvent('cozy-cache-cleared', { detail: cacheUrl }));
           addToast(`Removed ${wallpaper.name} from cache`, 'success');
-          // Note: UI will gracefully fallback to http URL on next render or restart
         } else {
           const realPath = wallpaper.realPath || wallpaper.path;
           await invoke('delete_local_wallpaper', { path: realPath });

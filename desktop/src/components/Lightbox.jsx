@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { invoke } from '@tauri-apps/api/core';
 import { LuChevronLeft, LuChevronRight, LuRefreshCw, LuMonitor, LuDownload, LuX } from 'react-icons/lu';
 import { useFocusTrap } from '../useFocusTrap.js';
 import { formatWallpaperName } from '../utils.js';

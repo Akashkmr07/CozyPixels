@@ -34,7 +34,15 @@ export function useCachedImage(url) {
         // Keep the CDN URL as the fallback when local cache lookup fails.
       });
 
-    return () => { isMounted = false; };
+    const handleCacheCleared = event => {
+      if (event.detail === url) setSrc(url);
+    };
+    window.addEventListener('cozy-cache-cleared', handleCacheCleared);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('cozy-cache-cleared', handleCacheCleared);
+    };
   }, [url]);
 
   return src;

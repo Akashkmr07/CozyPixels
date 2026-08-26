@@ -1,16 +1,10 @@
 use serde::{Deserialize, Serialize};
-use lru::LruCache;
-use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::sync::OnceLock;
 use std::time::Duration;
 use tauri::Emitter;
-
-fn image_cache() -> &'static Mutex<LruCache<String, Vec<u8>>> {
-    static CACHE: OnceLock<Mutex<LruCache<String, Vec<u8>>>> = OnceLock::new();
-    CACHE.get_or_init(|| Mutex::new(LruCache::new(NonZeroUsize::new(100).unwrap())))
-}
+use sha2::{Digest, Sha256};
 
 const APP_USER_AGENT: &str = "CozyPixels-Desktop/1.0 (https://cozy-pixels.vercel.app)";
 
@@ -19,6 +13,8 @@ fn http_client() -> &'static reqwest::Client {
     CLIENT.get_or_init(|| {
         reqwest::Client::builder()
             .user_agent(APP_USER_AGENT)
+            .connect_timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(45))
             .build()
             .expect("Failed to build HTTP client")
     })
@@ -37,7 +33,9 @@ struct WallpaperInfo {
 async fn set_wallpaper(app: tauri::AppHandle, url: String) -> Result<String, String> {
     #[cfg(target_os = "windows")]
     if let Some(video_window) = app.get_webview_window("video_bg") {
-        video_window.hide().map_err(|e| format!("Failed to stop live wallpaper: {}", e))?;
+        video_window
+            .destroy()
+            .map_err(|e| format!("Failed to stop live wallpaper: {}", e))?;
     }
 
     if !url.starts_with("http://") && !url.starts_with("https://") {
@@ -339,44 +337,6 @@ use tauri::{
 };
 
 #[tauri::command]
-async fn fetch_image_bytes(url: String) -> Result<Vec<u8>, String> {
-    {
-        let mut cache = image_cache().lock().unwrap();
-        if let Some(bytes) = cache.get(&url) {
-            return Ok(bytes.clone());
-        }
-    }
-
-    let referer = if let Ok(parsed) = url::Url::parse(&url) {
-        format!("{}://{}/", parsed.scheme(), parsed.host_str().unwrap_or(""))
-    } else {
-        String::new()
-    };
-
-    let mut req = http_client().get(&url)
-        .header("Accept", "image/avif,image/webp,image/apng,image/png,image/jpeg,*/*;q=0.8");
-
-    if !referer.is_empty() {
-        req = req.header("Referer", &referer);
-    }
-
-    let resp = req.send().await.map_err(|e| format!("Download failed: {}", e))?;
-
-    if !resp.status().is_success() {
-        return Err(format!("HTTP Error: {}", resp.status()));
-    }
-
-    let bytes = resp.bytes().await.map_err(|e| format!("Read failed: {}", e))?.to_vec();
-
-    {
-        let mut cache = image_cache().lock().unwrap();
-        cache.put(url, bytes.clone());
-    }
-
-    Ok(bytes)
-}
-
-#[tauri::command]
 async fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
     std::fs::read(&path).map_err(|e| format!("Failed to read file: {}", e))
 }
@@ -398,17 +358,34 @@ async fn download_and_save_wallpaper(url: String, path: String) -> Result<(), St
     std::fs::write(&path, bytes).map_err(|e| format!("Failed to write file: {}", e))
 }
 
-fn get_cache_dir() -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join("cozypixels-cache");
-    let _ = std::fs::create_dir_all(&dir);
-    dir
+fn get_cache_dir(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
+    let dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|e| format!("Failed to locate app cache: {}", e))?
+        .join("wallpapers");
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create app cache: {}", e))?;
+    Ok(dir)
+}
+
+fn cache_file_path(cache_dir: &std::path::Path, url: &str) -> std::path::PathBuf {
+    let digest = Sha256::digest(url.as_bytes());
+    let hash = format!("{:x}", digest);
+    let extension = url
+        .split('?')
+        .next()
+        .and_then(|path| path.rsplit('/').next())
+        .and_then(|name| name.rsplit_once('.'))
+        .map(|(_, extension)| extension.to_lowercase())
+        .filter(|extension| extension.len() <= 5)
+        .unwrap_or_else(|| "jpg".to_string());
+    cache_dir.join(format!("{}.{}", hash, extension))
 }
 
 #[tauri::command]
-async fn get_cached_image(url: String) -> Result<String, String> {
-    let filename = url.split('/').last().unwrap_or("image.jpg").to_string();
-    let cache_dir = get_cache_dir();
-    let file_path = cache_dir.join(&filename);
+async fn get_cached_image(app: tauri::AppHandle, url: String) -> Result<String, String> {
+    let cache_dir = get_cache_dir(&app)?;
+    let file_path = cache_file_path(&cache_dir, &url);
     
     if file_path.exists() {
         return Ok(format!("cozy://localhost/{}", file_path.to_string_lossy().replace('\\', "/")));
@@ -418,32 +395,42 @@ async fn get_cached_image(url: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn sync_all_wallpapers(urls: Vec<String>) -> Result<(), String> {
+async fn sync_all_wallpapers(app: tauri::AppHandle, urls: Vec<String>) -> Result<(), String> {
+    let cache_dir = get_cache_dir(&app)?;
     tauri::async_runtime::spawn(async move {
-        let cache_dir = get_cache_dir();
-        
+        let semaphore = Arc::new(tokio::sync::Semaphore::new(8));
+        let mut tasks = tokio::task::JoinSet::new();
+
         for url in urls {
-            let filename = url.split('/').last().unwrap_or("image.jpg").to_string();
-            let file_path = cache_dir.join(&filename);
-            
-            if !file_path.exists() {
+            let semaphore = semaphore.clone();
+            let cache_dir = cache_dir.clone();
+            tasks.spawn(async move {
+                let Ok(_permit) = semaphore.acquire_owned().await else { return };
+                let file_path = cache_file_path(&cache_dir, &url);
+                if file_path.exists() { return; }
                 if let Ok(response) = http_client().get(&url).send().await {
-                    if let Ok(bytes) = response.bytes().await {
-                        let _ = tokio::fs::write(&file_path, bytes).await;
+                    if response.status().is_success() {
+                        if let Ok(bytes) = response.bytes().await {
+                            let temp_path = file_path.with_extension("download");
+                            if tokio::fs::write(&temp_path, bytes).await.is_ok() {
+                                let _ = tokio::fs::rename(temp_path, file_path).await;
+                            }
+                        }
                     }
                 }
-            }
+            });
         }
+
+        while tasks.join_next().await.is_some() {}
     });
     
     Ok(())
 }
 
 #[tauri::command]
-async fn delete_cached_wallpaper(url: String) -> Result<(), String> {
-    let filename = url.split('/').last().unwrap_or("image.jpg").to_string();
-    let cache_dir = get_cache_dir();
-    let file_path = cache_dir.join(&filename);
+async fn delete_cached_wallpaper(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    let cache_dir = get_cache_dir(&app)?;
+    let file_path = cache_file_path(&cache_dir, &url);
     
     if file_path.exists() {
         std::fs::remove_file(&file_path).map_err(|e| format!("Failed to delete: {}", e))?;
@@ -506,10 +493,11 @@ async fn set_video_wallpaper(
 ) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
+        use winapi::shared::windef::RECT;
         use winapi::um::winuser::{
-            GetSystemMetrics, SetParent, SetWindowLongW, SetWindowPos,
-            GWL_STYLE, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN,
-            SWP_NOACTIVATE, SWP_SHOWWINDOW, WS_CHILD, WS_VISIBLE,
+            GetClientRect, SetParent, SetWindowLongW, SetWindowPos,
+            GWL_STYLE, SWP_NOACTIVATE, SWP_NOZORDER, SWP_SHOWWINDOW,
+            WS_CHILD, WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_VISIBLE,
         };
         let window_label = "video_bg";
         let video_url = player_url.unwrap_or_else(|| url.clone());
@@ -540,15 +528,23 @@ async fn set_video_wallpaper(
 
         let hwnd = window.hwnd().map_err(|e| e.to_string())?;
         let hwnd_ptr: HWND = unsafe { std::mem::transmute(hwnd) };
-        let width = unsafe { GetSystemMetrics(SM_CXVIRTUALSCREEN) };
-        let height = unsafe { GetSystemMetrics(SM_CYVIRTUALSCREEN) };
+        let mut client_rect: RECT = unsafe { std::mem::zeroed() };
+        if unsafe { GetClientRect(worker_w, &mut client_rect) } == 0 {
+            return Err("Could not determine the desktop host bounds".to_string());
+        }
+        let width = client_rect.right - client_rect.left;
+        let height = client_rect.bottom - client_rect.top;
         if width <= 0 || height <= 0 {
             return Err("Could not determine the desktop size".to_string());
         }
 
         unsafe {
             SetParent(hwnd_ptr, worker_w);
-            SetWindowLongW(hwnd_ptr, GWL_STYLE, (WS_CHILD | WS_VISIBLE) as i32);
+            SetWindowLongW(
+                hwnd_ptr,
+                GWL_STYLE,
+                (WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE) as i32,
+            );
             SetWindowPos(
                 hwnd_ptr,
                 null_mut(),
@@ -556,7 +552,7 @@ async fn set_video_wallpaper(
                 0,
                 width,
                 height,
-                SWP_NOACTIVATE | SWP_SHOWWINDOW,
+                SWP_NOACTIVATE | SWP_NOZORDER | SWP_SHOWWINDOW,
             );
         }
     }
@@ -711,9 +707,11 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                let _ = window.hide();
-                api.prevent_close();
+            if window.label() == "main" {
+                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                    let _ = window.hide();
+                    api.prevent_close();
+                }
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -724,7 +722,6 @@ pub fn run() {
             get_rotate_status,
             update_rotate_interval,
             scan_local_directory,
-            fetch_image_bytes,
             read_file_bytes,
             delete_local_wallpaper,
             download_and_save_wallpaper,

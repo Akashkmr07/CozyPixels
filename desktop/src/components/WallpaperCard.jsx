@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import React, { useState, useMemo } from 'react';
 import { LuImage, LuRefreshCw, LuMonitor, LuDownload, LuStar, LuTrash, LuPlay } from 'react-icons/lu';
 import { formatWallpaperName } from '../utils.js';
 import { useCachedImage } from '../useCachedImage.js';
@@ -10,8 +9,6 @@ export const WallpaperCard = React.memo(({ wallpaper, onSetWallpaper, onPreview,
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
   const [imageFallback, setImageFallback] = useState(false);
-  const cardRef = useRef(null);
-
   const baseImageUrl = useMemo(() => 
     wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://') 
       ? wallpaper.path 
@@ -40,7 +37,6 @@ export const WallpaperCard = React.memo(({ wallpaper, onSetWallpaper, onPreview,
 
   return (
     <div
-      ref={cardRef}
       className={`card fade-in ${selectionMode ? 'selection-mode' : ''} ${isSelected ? 'selected' : ''}`}
       onClick={() => {
         if (selectionMode) {

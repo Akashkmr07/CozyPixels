@@ -518,6 +518,7 @@ body {
 
 .card {
   position: relative;
+  contain: layout paint;
   border-radius: 16px;
   overflow: hidden;
   height: 200px;
