@@ -3,7 +3,7 @@ import { LuImage, LuRefreshCw, LuMonitor, LuDownload, LuStar, LuTrash, LuPlay } 
 import { formatWallpaperName } from '../utils.js';
 import { useCachedImage } from '../useCachedImage.js';
 
-const STATIC_URL = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public';
+const STATIC_URL = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@f86b8925c715881b33e50f70f34ef8898851a31e/frontend/public';
 
 export const WallpaperCard = React.memo(({ wallpaper, onSetWallpaper, onPreview, onDownload, setting, isFavorite, onToggleFavorite, onDelete, selectionMode, isSelected, onToggleSelect }) => {
   const [loaded, setLoaded] = useState(false);

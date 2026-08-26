@@ -5,7 +5,7 @@ import { useFocusTrap } from '../useFocusTrap.js';
 import { formatWallpaperName } from '../utils.js';
 import { useCachedImage } from '../useCachedImage.js';
 
-const STATIC_URL = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@main/frontend/public';
+const STATIC_URL = 'https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@f86b8925c715881b33e50f70f34ef8898851a31e/frontend/public';
 
 export const Lightbox = ({ wallpaper, onClose, onSetWallpaper, onSetLockScreen, onDownload, setting, settingLock, onNext, onPrev, hasNext, hasPrev }) => {
   const [direction, setDirection] = useState(0);
