@@ -149,6 +149,11 @@ export default function App() {
   const [rotateExpanded, setRotateExpanded] = useState(false);
 
   useEffect(() => {
+    setDisplayCount(48);
+    galleryRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+  }, [category, deferredSearch]);
+
+  useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e) => setDark(e.matches);
     mediaQuery.addEventListener('change', handleChange);
@@ -160,6 +165,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('cozy_rotateCategory', rotateCategory); }, [rotateCategory]);
 
   const observerRef = useRef();
+  const galleryRef = useRef(null);
   const loaderRef = useCallback(node => {
     if (observerRef.current) observerRef.current.disconnect();
     observerRef.current = new IntersectionObserver(entries => {
@@ -910,7 +916,7 @@ export default function App() {
           </div>
         </div>
 
-        <div className="gallery" style={{ position: 'relative' }}>
+        <div ref={galleryRef} className="gallery" style={{ position: 'relative' }}>
           {displayedWallpapers.map((w, i) => (
             <WallpaperCard
               key={`${w.category}-${w.name}-${i}`}
@@ -928,7 +934,7 @@ export default function App() {
             />
           ))}
           {filtered.length > displayCount && (
-            <div ref={loaderRef} style={{ width: '100%', height: '40px', gridColumn: '1 / -1', contentVisibility: 'auto' }} />
+            <div key={`${category}-${deferredSearch}`} ref={loaderRef} style={{ width: '100%', height: '40px', gridColumn: '1 / -1', contentVisibility: 'auto' }} />
           )}
         </div>
         <AnimatePresence mode="wait">
