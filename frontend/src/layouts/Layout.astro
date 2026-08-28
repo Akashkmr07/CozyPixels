@@ -5,8 +5,8 @@ export interface Props {
 }
 
 const { 
-  title = "CozyPixels by Nikhil | Official 4K Wallpapers & App",
-  description = "Official CozyPixels: Browse 900+ free minimalist 4K wallpapers in Catppuccin, Nord, and One Dark. Download the native Desktop App and Chrome Extension."
+  title = "CozyPixels | 4K Aesthetic Wallpapers for PC & Mobile",
+  description = "Download 900+ free minimalist 4K wallpapers for PC, Mac, iOS, and Android. Explore aesthetic backgrounds, Catppuccin themes, and dark mode wallpapers."
 } = Astro.props;
 ---
 
@@ -18,7 +18,7 @@ const {
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="canonical" href="https://cozypixels.eu.org/" />
+    <link rel="canonical" href="https://cozy-pixels.vercel.app/" />
     <title>{title}</title>
     <meta name="title" content={title} />
     <meta name="description" content={description} />
@@ -27,16 +27,16 @@ const {
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://cozypixels.eu.org/" />
+    <meta property="og:url" content="https://cozy-pixels.vercel.app/" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content="https://cozypixels.eu.org/og-image.png" />
+    <meta property="og:image" content="https://cozy-pixels.vercel.app/og-image.png" />
     
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@yadavnikhil03" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content="https://cozypixels.eu.org/og-image.png" />
+    <meta name="twitter:image" content="https://cozy-pixels.vercel.app/og-image.png" />
     
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -48,13 +48,13 @@ const {
       "@graph": [
         {
           "@type": "Organization",
-          "@id": "https://cozypixels.eu.org/#organization",
+          "@id": "https://cozy-pixels.vercel.app/#organization",
           "name": "CozyPixels",
-          "url": "https://cozypixels.eu.org/",
+          "url": "https://cozy-pixels.vercel.app/",
           "logo": {
             "@type": "ImageObject",
-            "@id": "https://cozypixels.eu.org/#logo",
-            "url": "https://cozypixels.eu.org/favicon.svg",
+            "@id": "https://cozy-pixels.vercel.app/#logo",
+            "url": "https://cozy-pixels.vercel.app/favicon.svg",
             "caption": "CozyPixels Logo"
           },
           "sameAs": [
@@ -63,7 +63,7 @@ const {
         },
         {
           "@type": "Person",
-          "@id": "https://cozypixels.eu.org/#person",
+          "@id": "https://cozy-pixels.vercel.app/#person",
           "name": "Nikhil Yadav",
           "url": "https://github.com/yadavnikhil03",
           "sameAs": [
@@ -71,23 +71,26 @@ const {
           ]
         },
         {
-          "@type": "WebSite",
-          "@id": "https://cozypixels.eu.org/#website",
-          "url": "https://cozypixels.eu.org/",
+          "@type": ["WebSite", "WebApplication"],
+          "@id": "https://cozy-pixels.vercel.app/#website",
+          "url": "https://cozy-pixels.vercel.app/",
           "name": "CozyPixels",
+          "alternateName": ["Cozy Pixels", "cozypixels"],
+          "applicationCategory": "DesignApplication",
+          "operatingSystem": "Windows, macOS, Linux, Web",
           "description": "Curated collection of 900+ free minimalist and aesthetic 4K wallpapers for desktop and mobile, along with a dedicated Desktop App and Chrome Extension.",
           "publisher": {
-            "@id": "https://cozypixels.eu.org/#organization"
+            "@id": "https://cozy-pixels.vercel.app/#organization"
           },
           "author": {
-            "@id": "https://cozypixels.eu.org/#person"
+            "@id": "https://cozy-pixels.vercel.app/#person"
           },
           "potentialAction": [
             {
               "@type": "SearchAction",
               "target": {
                 "@type": "EntryPoint",
-                "urlTemplate": "https://cozypixels.eu.org/?q={search_term_string}"
+                "urlTemplate": "https://cozy-pixels.vercel.app/?q={search_term_string}"
               },
               "query-input": "required name=search_term_string"
             }

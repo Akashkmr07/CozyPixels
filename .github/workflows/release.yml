@@ -7,6 +7,8 @@ on:
       - master
     paths:
       - 'desktop/**'
+      - 'CHANGELOG.md'
+      - 'scripts/release-notes.mjs'
       - '.github/workflows/release.yml'
 
 jobs:
@@ -38,7 +40,7 @@ jobs:
           cache-dependency-path: desktop/package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
         working-directory: desktop
 
       - name: Setup Rust
@@ -51,6 +53,10 @@ jobs:
         with:
           workspaces: desktop/src-tauri
 
+      - name: Prepare release notes
+        id: release_notes
+        run: node scripts/release-notes.mjs
+
       - name: Build and Release Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
@@ -62,7 +68,7 @@ jobs:
           includeUpdaterJson: true
           tagName: app-v__VERSION__
           releaseName: 'CozyPixels Desktop v__VERSION__'
-          releaseBody: 'See the assets below to download and install this version of CozyPixels.'
+          releaseBody: ${{ steps.release_notes.outputs.body }}
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.platform == 'macos-latest' && '--target universal-apple-darwin' || '' }}

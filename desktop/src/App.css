@@ -79,6 +79,7 @@ body {
   gap: 4px;
   transition: background var(--md-sys-motion-duration-medium);
   z-index: 100;
+  min-height: 0;
 }
 
 .logo {
@@ -96,7 +97,14 @@ body {
   flex-direction: column;
   gap: 4px;
   flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
 }
+
+.nav::-webkit-scrollbar { width: 4px; }
+.nav::-webkit-scrollbar-track { background: transparent; }
+.nav::-webkit-scrollbar-thumb { background: var(--md-sys-color-outline-variant); border-radius: 2px; }
 
 .nav__item {
   display: flex;
@@ -133,14 +141,22 @@ body {
 
 .nav__badge {
   margin-left: auto;
-  font-size: 12px;
-  font-weight: 700;
-  font-family: 'Geist', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
   color: var(--md-sys-color-on-surface-variant);
+  background: var(--md-sys-color-surface-container-highest);
+  padding: 4px 8px;
+  border-radius: 12px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .nav__item.active .nav__badge {
   color: var(--md-sys-color-on-secondary-container);
+  background: color-mix(in srgb, var(--md-sys-color-on-secondary-container) 15%, transparent);
 }
 
 .rotate-pill {
@@ -502,6 +518,9 @@ body {
 
 .card {
   position: relative;
+  contain: layout paint;
+  content-visibility: auto;
+  contain-intrinsic-size: 200px;
   border-radius: 16px;
   overflow: hidden;
   height: 200px;
@@ -510,15 +529,11 @@ body {
   border: none;
   transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-emphasized),
               box-shadow var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-emphasized);
-  will-change: transform, box-shadow;
   box-shadow: var(--elevation-1);
-  content-visibility: auto;
-  contain-intrinsic-size: 200px;
-  contain: layout style paint;
 }
 
 .card:hover {
-  transform: translateY(-2px) translateZ(0);
+  transform: translateY(-2px);
   box-shadow: var(--elevation-2);
 }
 
@@ -531,8 +546,6 @@ body {
     var(--md-sys-color-surface-container) 75%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite linear;
-  will-change: background-position;
-  transform: translateZ(0);
 }
 
 .card__img {
@@ -541,35 +554,31 @@ body {
   object-fit: cover;
   display: block;
   transition: transform 600ms var(--md-sys-motion-easing-emphasized);
-  will-change: transform;
-  transform: translateZ(0);
 }
 
-.card:hover .card__img { transform: scale(1.05) translateZ(0); }
+.card:hover .card__img { transform: scale(1.05); }
 
 .card__overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top,
-    rgba(0,0,0, 0.8) 0%,
-    rgba(0,0,0, 0.2) 50%,
-    transparent 100%);
+  background: linear-gradient(to top, rgba(0,0,0, 0.8) 0%, rgba(0,0,0, 0.2) 50%, transparent 100%);
   opacity: 0;
   transition: opacity var(--md-sys-motion-duration-short) ease;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding: 16px;
 }
 
 .card:hover .card__overlay { opacity: 1; }
 
 .card__meta {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  right: 140px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   transform: translateY(12px);
   transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-emphasized);
+  overflow: hidden;
 }
 
 .card:hover .card__meta { transform: translateY(0); }
@@ -580,21 +589,26 @@ body {
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: #dee0ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card__name {
   font-size: 16px;
   font-weight: 500;
   color: white;
-  max-width: 180px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .card__actions {
+  position: absolute;
+  right: 24px;
+  bottom: 12px;
   display: flex;
-  gap: 8px;
+  gap: 4px;
   transform: translateY(12px);
   transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-emphasized);
 }
@@ -605,21 +619,26 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px; height: 40px;
-  border-radius: 20px;
+  width: 32px; height: 32px;
+  border-radius: 16px;
   border: none;
   background: rgba(255,255,255,0.2);
   color: white;
   cursor: pointer;
   transition: background var(--md-sys-motion-duration-short);
-  text-decoration: none;
   flex-shrink: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .card__btn:hover { background: rgba(255,255,255,0.3); }
 
 .card__btn--set { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
 .card__btn--set:hover { background: var(--md-sys-color-primary); filter: brightness(1.1); }
+.active-star { background: #ffd700; color: #000; }
+.active-star:hover { background: #ffea00; }
+.card__btn--danger { background: var(--md-sys-color-error); color: var(--md-sys-color-on-error); }
+.card__btn--danger:hover { background: var(--md-sys-color-error); filter: brightness(1.1); }
 
 .card__error {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -1323,6 +1342,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 99999;
+  pointer-events: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1417,3 +1437,66 @@ body {
 @media (forced-colors: active) {
   .card__btn, .lb-btn, .update-btn, .nav__item { border: 1px solid ButtonText; }
 }
+
+/* Selection Mode */
+.card.selection-mode {
+  cursor: pointer;
+}
+.card.selection-mode:hover {
+  transform: scale(0.98);
+}
+.card.selected {
+  outline: 3px solid var(--md-sys-color-primary);
+  transform: scale(0.96);
+}
+.card.selected:hover {
+  transform: scale(0.96);
+}
+
+.card__checkbox {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 24px;
+  height: 24px;
+  background: rgba(0,0,0,0.5);
+  border-radius: 4px;
+  border: 2px solid rgba(255,255,255,0.7);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.checkbox__inner.checked {
+  width: 14px;
+  height: 14px;
+  background: var(--md-sys-color-primary);
+  border-radius: 2px;
+}
+
+.topbar__btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: var(--md-sys-color-on-surface);
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.topbar__btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+.topbar__btn--danger {
+  background: var(--md-sys-color-error);
+  color: var(--md-sys-color-on-error);
+}
+.topbar__btn--danger:hover {
+  background: var(--md-sys-color-error);
+  filter: brightness(1.1);
+}
+

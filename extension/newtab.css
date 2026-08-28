@@ -835,11 +835,13 @@ input:checked + .slider:before {
   background: rgba(255, 255, 255, 0.15);
   outline: none;
   -webkit-appearance: none;
+  appearance: none;
   cursor: pointer;
 }
 
 .setting-item input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
+  appearance: none;
   width: 14px;
   height: 14px;
   border-radius: 50%;
@@ -1225,8 +1227,8 @@ input:checked + .slider:before {
 /* "x" remove button, revealed on hover/focus so the chip stays clean by default */
 .mv-remove-btn {
   position: absolute;
-  top: -6px;
-  right: -6px;
+  top: 4px;
+  right: 4px;
   width: 18px;
   height: 18px;
   border-radius: 50%;
@@ -1574,6 +1576,16 @@ input:checked + .slider:before {
   color: white;
 }
 
+.live-wp-card.active:hover .live-wp-card__applied {
+  background: #d9534f;
+  font-size: 0;
+}
+
+.live-wp-card.active:hover .live-wp-card__applied::after {
+  content: 'Stop';
+  font-size: 9px;
+}
+
 .live-wp-card__name {
   font-size: 11px;
   padding: 6px 4px 2px;
@@ -1609,7 +1621,63 @@ input:checked + .slider:before {
   background: #d9534f;
 }
 
+/* Drag and Drop Overlay */
+.drag-drop-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
 
+.drag-drop-overlay.active {
+  opacity: 1;
+}
 
+.drag-drop-content {
+  text-align: center;
+  color: var(--color-warm-white);
+  padding: 40px 60px;
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.2);
+  transform: scale(0.95);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.3s ease;
+}
 
+.drag-drop-overlay.active .drag-drop-content {
+  transform: scale(1);
+}
 
+.drag-drop-overlay.drag-over .drag-drop-content {
+  border-color: var(--color-emerald);
+  background: rgba(80, 179, 134, 0.1);
+  transform: scale(1.05);
+}
+
+.drag-drop-content svg {
+  margin-bottom: 20px;
+  opacity: 0.8;
+}
+
+.drag-drop-content h2 {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+
+.drag-drop-content p {
+  font-size: 14px;
+  opacity: 0.6;
+}

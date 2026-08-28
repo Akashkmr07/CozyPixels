@@ -1,80 +1,7 @@
-// Cozy Engine — Live Wallpaper feature.
-//
-// Deliberately built as a self-contained *overlay* on top of the existing
-// static-image rotation system, not a replacement for it:
-//   - When disabled (default), this file does nothing visible at all — the
-//     existing #sanctuary-bg rotation behaves exactly as it always has.
-//   - When enabled, #live-wallpaper-layer is shown on top of #sanctuary-bg
-//     (same stacking context, later in DOM order = paints on top), and
-//     renders whichever video/gif/web wallpaper the user selected.
-// This means zero changes were needed to the existing rotation/newtab.js
-// logic to add this feature — it's additive, not a rewrite.
-//
-// Live wallpaper selection is deliberately NOT part of the periodic random
-// rotation timer — background.js's rotateWallpaper() checks
-// `toggleLiveWallpaper` and skips its own work entirely while a live
-// wallpaper is active, so the interval timer only ever affects the static
-// image, never a live one.
-//
-// UX rule: adding a video, GIF, or link immediately becomes the active
-// live wallpaper — no separate "now click it" or "now flip the toggle"
-// step. The toggle exists only to *pause* (fall back to static without
-// losing your saved library) and *resume* live mode.
 
 const CozyLive = (() => {
   const STORAGE_KEYS = ['toggleLiveWallpaper', 'activeLiveWallpaper'];
-  let currentObjectUrl = null; // tracks the one blob URL currently in use, for cleanup
-
-  // --- Cross-tab real-time sync ---
-  //
-  // ROOT CAUSE of "other open tabs don't update until refresh": every
-  // "apply a wallpaper" action wrote to chrome.storage.local AND directly
-  // called renderEntry()/clearLayer() in the SAME function, in the SAME
-  // tab. That's two completely separate paths to the same result — the
-  // tab that made the change updates itself via the direct call; every
-  // OTHER open tab has no way to find out, because nothing was ever
-  // listening for storage changes. chrome.storage.onChanged is the
-  // extension-native equivalent of window.addEventListener('storage') for
-  // localStorage — except, importantly, it also fires in the SAME tab
-  // that made the write (localStorage's `storage` event deliberately does
-  // NOT). That difference is exactly what makes this fixable properly:
-  // instead of "write storage, then also directly update this tab's UI,"
-  // every tab — including the one that made the change — now does
-  // exactly one thing in response to a change: react to the onChanged
-  // event. One trigger, one code path, every tab in sync, including the
-  // one that initiated it. `setActive()`/`disable()` below now ONLY write
-  // storage; they never touch the DOM directly anymore.
-  let lastRenderedKey = null;
-  let lastAppliedUpdatedAt = 0;
-
-  function initStorageSync() {
-    chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName !== 'local') return;
-
-      if (changes.toggleLiveWallpaper || changes.activeLiveWallpaper) {
-        console.debug('[Cozy Live Sync] Storage change detected — applying.');
-        applyFromStorage();
-        syncToggleUI();
-        refreshPickerUI(); // keeps the "Applied" badge correct in every open Settings drawer
-      } else if (changes.liveWallpaperLibraryRev) {
-        // Fires when another tab adds/deletes a library item without
-        // necessarily changing which one is active (e.g. deleting an
-        // item that wasn't the active one) — the active wallpaper itself
-        // doesn't need to change, but every open picker grid should still
-        // reflect the current library contents.
-        console.debug('[Cozy Live Sync] Library changed in another tab — refreshing picker.');
-        refreshPickerUI();
-      }
-    });
-  }
-
-  // Bumped after any IndexedDB mutation (add/delete) so other open tabs'
-  // picker grids can react even when the active wallpaper itself didn't
-  // change — chrome.storage.onChanged only fires for chrome.storage
-  // writes, not IndexedDB ones, so this is the bridge between the two.
-  function bumpLibraryRevision() {
-    chrome.storage.local.set({ liveWallpaperLibraryRev: Date.now() }).catch(() => {});
-  }
+  let currentObjectUrl = null;
 
   function els() {
     return {
@@ -116,7 +43,6 @@ const CozyLive = (() => {
     gifBg.style.display = 'none';
     gifBg.style.backgroundImage = '';
     revokeCurrentObjectUrl();
-    lastRenderedKey = null;
   }
 
   async function disableDueToMissingEntry(context) {
@@ -131,6 +57,24 @@ const CozyLive = (() => {
       const toggle = document.getElementById('toggle-live-wallpaper');
       if (toggle) toggle.checked = !!r.toggleLiveWallpaper;
     }).catch(() => {});
+  }
+
+  function bumpLibraryRevision() {
+    chrome.storage.local.set({ liveWallpaperLibraryRev: Date.now() }).catch(() => {});
+  }
+
+  function initStorageSync() {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== 'local') return;
+      if (changes.toggleLiveWallpaper || changes.activeLiveWallpaper) {
+        applyFromStorage();
+        syncToggleUI();
+        refreshPickerUI();
+      }
+      if (changes.liveWallpaperLibraryRev) {
+        refreshPickerUI();
+      }
+    });
   }
 
   function showStatus(message) {
@@ -158,19 +102,6 @@ const CozyLive = (() => {
     const e = requireEls();
     if (!e || !entry) return;
     const { layer, video, web, gifBg } = e;
-
-    // Avoid restarting playback when this exact wallpaper is already
-    // showing — chrome.storage.onChanged can legitimately fire more than
-    // once for what amounts to the same end state (e.g. this tab's own
-    // write triggers the listener too, by design), and reassigning
-    // <video>.src to the same URL still restarts it from frame zero.
-    // Without this guard, every tab would see its own video visibly
-    // stutter/restart on every single storage write, not just genuine
-    // wallpaper changes.
-    const key = `${entry.source}:${entry.id}`;
-    if (key === lastRenderedKey && layer.classList.contains('active')) {
-      return;
-    }
 
     revokeCurrentObjectUrl();
     video.style.display = 'none';
@@ -259,7 +190,6 @@ const CozyLive = (() => {
         }
       }
       layer.classList.add('active');
-      lastRenderedKey = key;
     } catch (err) {
       console.error('[Cozy Live] Failed to render live wallpaper:', entry, err);
       await disableDueToMissingEntry(entry);
@@ -294,18 +224,6 @@ const CozyLive = (() => {
     try {
       const result = await chrome.storage.local.get(STORAGE_KEYS);
       if (result.toggleLiveWallpaper && result.activeLiveWallpaper) {
-        // Defensive staleness guard: chrome.storage's backend serializes
-        // writes and should deliver onChanged events in commit order, so
-        // this shouldn't normally trigger — but if two tabs ever write in
-        // very close succession and events somehow arrive out of order,
-        // this stops an older update from clobbering a newer one that's
-        // already showing, rather than trusting delivery order blindly.
-        const incomingUpdatedAt = result.activeLiveWallpaper.updatedAt || 0;
-        if (incomingUpdatedAt < lastAppliedUpdatedAt) {
-          console.debug('[Cozy Live Sync] Ignoring stale update:', incomingUpdatedAt, '<', lastAppliedUpdatedAt);
-          return;
-        }
-        lastAppliedUpdatedAt = incomingUpdatedAt;
         await renderEntry(result.activeLiveWallpaper);
       } else {
         clearLayer();
@@ -316,19 +234,16 @@ const CozyLive = (() => {
   }
 
   async function setActive(entry) {
-    // Storage-only write. Rendering happens exclusively through the
-    // chrome.storage.onChanged listener (initStorageSync above) — even in
-    // this same tab. That's deliberate: one trigger, one code path, so
-    // "the tab that made the change" and "every other open tab" go
-    // through identical logic instead of racing two different ones.
     await chrome.storage.local.set({
       toggleLiveWallpaper: true,
-      activeLiveWallpaper: { ...entry, updatedAt: Date.now() },
+      activeLiveWallpaper: entry,
     });
+    await renderEntry(entry);
   }
 
   async function disable() {
     await chrome.storage.local.set({ toggleLiveWallpaper: false });
+    clearLayer();
   }
 
   function setupVisibilityHandling() {
@@ -503,7 +418,7 @@ const CozyLive = (() => {
     return a.source === b.source && String(a.id) === String(b.id);
   }
 
-  function renderPickerCard(entry, activeEntry, onApply, onDelete) {
+  function renderPickerCard(entry, activeEntry, onApply, onDelete, onDisable) {
     const card = document.createElement('div');
     card.className = 'live-wp-card';
     if (isSameEntry(entry, activeEntry)) card.classList.add('active');
@@ -535,7 +450,13 @@ const CozyLive = (() => {
     name.textContent = entry.name.replace(/\.[^/.]+$/, '');
     card.appendChild(name);
 
-    card.addEventListener('click', () => onApply(entry));
+    card.addEventListener('click', () => {
+      if (isSameEntry(entry, activeEntry) && onDisable) {
+        onDisable();
+      } else {
+        onApply(entry);
+      }
+    });
 
     if (entry.source === 'local' && onDelete) {
       const del = document.createElement('button');
@@ -565,8 +486,14 @@ const CozyLive = (() => {
       const all = [...local, ...catalog];
 
       if (emptyState) emptyState.style.display = all.length === 0 ? 'block' : 'none';
+      async function handleDisable() {
+        await disable();
+        syncToggleUI();
+        await refreshPickerUI();
+      }
+
       for (const entry of all) {
-        grid.appendChild(renderPickerCard(entry, activeEntry, handleApply, handleDelete));
+        grid.appendChild(renderPickerCard(entry, activeEntry, handleApply, handleDelete, handleDisable));
       }
 
       // Only blob-backed preview URLs (local GIFs) need revoking — video
@@ -586,24 +513,18 @@ const CozyLive = (() => {
     const toApply = entry.source === 'cdn'
       ? { source: 'cdn', id: entry.id, kind: entry.kind, name: entry.name, url: entry.url }
       : { source: 'local', id: entry.id, kind: entry.kind, name: entry.name };
-    // Only writes storage now — the onChanged listener (initStorageSync)
-    // handles rendering, syncing the toggle, and refreshing the picker
-    // grid, uniformly for this tab and every other open one.
     await setActive(toApply);
+    syncToggleUI();
+    await refreshPickerUI();
   }
 
   async function handleDelete(entry) {
     await CozyDB.remove(entry.id);
+    bumpLibraryRevision();
     const result = await chrome.storage.local.get(['activeLiveWallpaper']);
     if (result.activeLiveWallpaper && isSameEntry(result.activeLiveWallpaper, entry)) {
-      // Falls back to static — onChanged propagates this to every tab.
       await disable();
-    } else {
-      // Deleting a non-active item never touches chrome.storage (only
-      // IndexedDB), so onChanged wouldn't fire on its own — this bridges
-      // that gap so every open tab's picker grid still reflects the
-      // deletion instead of only the tab that made it.
-      bumpLibraryRevision();
+      syncToggleUI();
     }
     await refreshPickerUI();
   }
@@ -647,20 +568,16 @@ const CozyLive = (() => {
         (quotaHit ? ' — storage limit reached for the rest' : '')
       );
       if (lastAdded) {
-        // setActive() writes storage; onChanged handles rendering, toggle
-        // sync, and picker refresh for this tab and every other one.
         await setActive({ source: 'local', id: lastAdded.id, kind: lastAdded.kind, name: lastAdded.name });
-      } else {
-        await refreshPickerUI();
+        syncToggleUI();
       }
-    } else {
-      if (quotaHit) {
-        showStatus('Storage limit reached — remove some live wallpapers or use a link instead');
-      } else if (skipped > 0) {
-        showStatus('Unsupported file type or too large (max 300MB)');
-      }
-      await refreshPickerUI();
+    } else if (quotaHit) {
+      showStatus('Storage limit reached — remove some live wallpapers or use a link instead');
+    } else if (skipped > 0) {
+      showStatus('Unsupported file type or too large (max 300MB)');
     }
+
+    await refreshPickerUI();
   }
 
   function isValidHttpUrl(value) {
@@ -783,6 +700,8 @@ const CozyLive = (() => {
       showStatus(`${kind === 'gif' ? 'GIF' : 'Video'} link added`);
     }
     await setActive({ source: 'local', id: record.id, kind: record.kind, name: record.name });
+    syncToggleUI();
+    await refreshPickerUI();
   }
 
   function setupUI() {
@@ -799,9 +718,8 @@ const CozyLive = (() => {
           if (toggle.checked) {
             const result = await chrome.storage.local.get(['activeLiveWallpaper']);
             if (result.activeLiveWallpaper) {
-              // Just the storage write — onChanged renders it, in this
-              // tab and every other open one, uniformly.
               await chrome.storage.local.set({ toggleLiveWallpaper: true });
+              await renderEntry(result.activeLiveWallpaper);
             } else {
               const { local, catalog } = await listAllEntries();
               const first = local[0] || catalog[0];
@@ -816,6 +734,7 @@ const CozyLive = (() => {
           } else {
             await disable();
           }
+          await refreshPickerUI();
         } catch (err) {
           console.error('[Cozy Live] Toggle handler failed:', err);
           toggle.checked = false;
@@ -850,9 +769,49 @@ const CozyLive = (() => {
     refreshPickerUI();
   }
 
+  function setupGlobalDragDrop() {
+    const overlay = document.getElementById('drag-drop-overlay');
+    if (!overlay) return;
+
+    let dragCounter = 0;
+
+    window.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dragCounter++;
+      if (e.dataTransfer.types.includes('Files')) {
+        overlay.classList.add('active');
+      }
+    });
+
+    window.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      overlay.classList.add('drag-over');
+    });
+
+    window.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dragCounter--;
+      overlay.classList.remove('drag-over');
+      if (dragCounter === 0) {
+        overlay.classList.remove('active');
+      }
+    });
+
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dragCounter = 0;
+      overlay.classList.remove('active', 'drag-over');
+      
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFileUpload(Array.from(e.dataTransfer.files));
+      }
+    });
+  }
+
   async function init() {
     setupVisibilityHandling();
     initStorageSync();
+    setupGlobalDragDrop();
     await applyFromStorage();
     setupUI();
   }
