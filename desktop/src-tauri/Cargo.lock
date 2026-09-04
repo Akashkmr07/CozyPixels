@@ -765,7 +765,7 @@ dependencies = [
 
 [[package]]
 name = "desktop"
-version = "1.4.0"
+version = "1.4.2"
 dependencies = [
  "percent-encoding",
  "reqwest 0.12.28",
