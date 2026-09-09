@@ -397,6 +397,15 @@ export default function App() {
     }
   }, [rotateInterval, rotateStatus, autoRotate]);
 
+  // Restart rotation when category changes
+  useEffect(() => {
+    if (autoRotate && rotateStatus) {
+      invoke('stop_auto_rotate').then(() => {
+        setRotateStatus(false);
+      }).catch(() => {});
+    }
+  }, [rotateCategory]);
+
   useEffect(() => {
     if (manualRotateRef.current) {
       manualRotateRef.current = false;
@@ -405,6 +414,7 @@ export default function App() {
     if (autoRotate && categoryCounts.All > 0 && !rotateStatus) {
       const pool = allWallpapers
         .filter(w => rotateCategory === 'All' || w.category === rotateCategory)
+        .filter(w => !w.path.toLowerCase().match(/\.(mp4|webm|mkv|gif)$/))
         .map(w => ({ name: w.name, url: w.realPath || (w.path.startsWith('http') || w.path.startsWith('cozy://') ? w.path : `${STATIC_URL}${w.path}`) }));
       if (pool.length) {
         let startIndex = 0;
@@ -459,6 +469,13 @@ export default function App() {
        
     const isVideo = wallpaper.path.toLowerCase().endsWith('.mp4') || wallpaper.path.toLowerCase().endsWith('.webm') || wallpaper.path.toLowerCase().endsWith('.mkv') || wallpaper.path.toLowerCase().endsWith('.gif');
        
+    if (isVideo && autoRotate) {
+      invoke('stop_auto_rotate').catch(() => {});
+      setAutoRotate(false);
+      setRotateStatus(false);
+      addToast('Auto-rotate paused for Live Wallpaper', 'info');
+    }
+
     setSettingWallpaper(wallpaper.path);
 
     // Show cinematic transition for video wallpapers
@@ -487,7 +504,7 @@ export default function App() {
     } finally {
       setSettingWallpaper(null);
     }
-  }, [addToast]);
+  }, [addToast, autoRotate]);
 
   const handleSetLockScreen = useCallback(async (wallpaper) => {
     if (!wallpaper?.path) {
