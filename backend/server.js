@@ -12,7 +12,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https://cdn.jsdelivr.net", "https://raw.githubusercontent.com", "https://cozy-pixels.onrender.com"],
@@ -40,6 +40,7 @@ app.use('/api/', apiLimiter);
 // Security: Restrict CORS to trusted origins only
 const allowedOrigins = [
   'https://cozy-pixels.vercel.app',
+  'https://cozypixels.eu.org',
   'https://cozy-pixels.eu.org',
   'http://localhost:3000',
   'http://localhost:1420'
@@ -106,9 +107,10 @@ app.get('/api/wallpapers', (req, res) => {
     }
   }
 
-  if (page && limit) {
-    const p = parseInt(page), l = parseInt(limit);
-    if (isNaN(p) || isNaN(l) || p < 1 || l < 1) {
+  if (page || limit) {
+    const p = Number(page);
+    const l = Number(limit);
+    if (!Number.isInteger(p) || !Number.isInteger(l) || p < 1 || l < 1 || String(p) !== String(page) || String(l) !== String(limit)) {
       return res.status(400).json({
         error: 'Invalid pagination parameters',
         message: 'Page and limit must be positive integers'

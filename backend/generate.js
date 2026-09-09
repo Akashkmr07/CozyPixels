@@ -36,7 +36,8 @@ const findImages = (dir, category) => {
           results.push({
             name: file,
             path: `/${encodedPath}`,
-            category: category
+            category: category,
+            downloadPath: `/${encodedPath}`
           });
         }
       }

@@ -58,20 +58,12 @@ export const VideoBackgroundPlayer = ({ initialUrl }) => {
     return () => clearTimeout(transitionTimer.current);
   }, []);
 
-  // Debug logging
-  useEffect(() => {
-    const logs = JSON.parse(localStorage.getItem('debug_video_logs') || '[]');
-    logs.push({ time: new Date().toISOString(), layers: layers.map(l => l.url) });
-    localStorage.setItem('debug_video_logs', JSON.stringify(logs.slice(-20)));
-  }, [layers]);
+  // Removed debug logging
 
   const currentLayer = layers[0];
   const nextLayer = layers.length > 1 ? layers[1] : null;
 
   if (!currentLayer?.url) {
-    const logs = JSON.parse(localStorage.getItem('debug_video_logs') || '[]');
-    logs.push({ time: new Date().toISOString(), error: "NO VIDEO URL" });
-    localStorage.setItem('debug_video_logs', JSON.stringify(logs.slice(-20)));
     return null;
   }
 
@@ -137,7 +129,7 @@ export const VideoBackgroundPlayer = ({ initialUrl }) => {
 
       {errorMsg && (
         <div style={{ position: 'absolute', top: 20, left: 20, color: 'red', zIndex: 9999, fontSize: '24px', backgroundColor: 'rgba(0,0,0,0.8)', padding: '10px' }}>
-          Video Error: {errorMsg} <br/> URL: {currentLayer.url}
+          Video Error: {errorMsg} <br /> URL: {currentLayer.url}
         </div>
       )}
 
@@ -203,6 +195,7 @@ export const VideoBackgroundPlayer = ({ initialUrl }) => {
             muted
             playsInline
             onContextMenu={(e) => e.preventDefault()}
+            onCanPlay={handleNextReady}
             onCanPlayThrough={handleNextReady}
             onError={(e) => {
               setErrorMsg(e.target.error ? `Code ${e.target.error.code}: ${e.target.error.message}` : "Unknown video error");

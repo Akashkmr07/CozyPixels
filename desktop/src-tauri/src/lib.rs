@@ -363,14 +363,15 @@ async fn delete_local_wallpaper(path: String) -> Result<(), String> {
     }
     
     let canon_path = std::fs::canonicalize(&path).map_err(|e| e.to_string())?;
-    let canon_str = canon_path.to_string_lossy().to_string();
     
-    let is_allowed = get_allowed_dirs().iter().any(|allowed_dir| canon_str.starts_with(allowed_dir));
+    let is_allowed = get_allowed_dirs()
+        .iter()
+        .any(|allowed_dir| canon_path.starts_with(std::path::Path::new(allowed_dir)));
     if !is_allowed {
         return Err("Path not in an allowed directory".to_string());
     }
 
-    std::fs::remove_file(&path).map_err(|e| format!("Failed to delete file: {}", e))
+    std::fs::remove_file(&canon_path).map_err(|e| format!("Failed to delete file: {}", e))
 }
 
 #[tauri::command]
@@ -755,10 +756,15 @@ fn attach_to_workerw(window: &tauri::WebviewWindow) -> Result<(), String> {
 
         // The Subclass procedure that will intercept winit's resize attempts
         unsafe extern "system" fn subclass_proc(
-            h: HWND, msg: UINT, wp: WPARAM, lp: LPARAM, _id: usize, data: usize
+            h: HWND, msg: UINT, wp: WPARAM, lp: LPARAM, id: usize, data: usize
         ) -> LRESULT {
-            use winapi::um::winuser::WM_NCCALCSIZE;
+            use winapi::um::winuser::{WM_NCCALCSIZE, WM_NCDESTROY};
             
+            if msg == WM_NCDESTROY && data != 0 {
+                let _ = Box::from_raw(data as *mut WindowBounds);
+                return DefSubclassProc(h, msg, wp, lp);
+            }
+
             if msg == WM_NCCALCSIZE && wp != 0 {
                 // Return 0 to completely eliminate the non-client area (borders/shadows)
                 // This prevents Windows 10/11 from shrinking our client area by 8px!
@@ -786,6 +792,11 @@ fn attach_to_workerw(window: &tauri::WebviewWindow) -> Result<(), String> {
         }
 
         // Install the subclass
+        let mut old_data = 0;
+        winapi::um::commctrl::GetWindowSubclass(hwnd_ptr, Some(subclass_proc), 1337, &mut old_data);
+        if old_data != 0 {
+            let _ = Box::from_raw(old_data as *mut WindowBounds);
+        }
         SetWindowSubclass(
             hwnd_ptr,
             Some(subclass_proc),
@@ -948,10 +959,15 @@ pub fn run() {
                             let parts: Vec<&str> = range.split('-').collect();
                             if !parts.is_empty() && !parts[0].is_empty() {
                                 start = parts[0].parse::<u64>().unwrap_or(0);
+                                if parts.len() > 1 && !parts[1].is_empty() {
+                                    end = parts[1].parse::<u64>().unwrap_or(file_len.saturating_sub(1));
+                                }
+                            } else if parts.len() > 1 && !parts[1].is_empty() {
+                                let suffix = parts[1].parse::<u64>().unwrap_or(0);
+                                start = file_len.saturating_sub(suffix);
+                                end = file_len.saturating_sub(1);
                             }
-                            if parts.len() > 1 && !parts[1].is_empty() {
-                                end = parts[1].parse::<u64>().unwrap_or(file_len.saturating_sub(1));
-                            }
+                            end = end.min(file_len.saturating_sub(1));
                             is_partial = true;
                         }
                     }
@@ -975,28 +991,34 @@ pub fn run() {
                 }
                 
                 let mut data = vec![0; chunk_size as usize];
-                if let Ok(bytes_read) = file.read(&mut data) {
-                    data.truncate(bytes_read);
-                    let actual_chunk_size = bytes_read as u64;
-                    let actual_end = start + actual_chunk_size - 1;
-                    
-                    let mut builder = tauri::http::Response::builder()
-                        .header("Content-Type", mime)
-                        .header("Accept-Ranges", "bytes");
-                        
-                    if is_partial {
-                        builder = builder
-                            .status(206)
-                            .header("Content-Range", format!("bytes {}-{}/{}", start, actual_end, file_len))
-                            .header("Content-Length", actual_chunk_size.to_string());
-                    } else {
-                        builder = builder
-                            .status(200)
-                            .header("Content-Length", file_len.to_string());
+                let mut total_read = 0;
+                while total_read < chunk_size as usize {
+                    match file.read(&mut data[total_read..]) {
+                        Ok(0) => break,
+                        Ok(n) => total_read += n,
+                        Err(_) => break,
                     }
-                    
-                    return builder.body(data).unwrap();
                 }
+                data.truncate(total_read);
+                let actual_chunk_size = total_read as u64;
+                let actual_end = if actual_chunk_size == 0 { start } else { start + actual_chunk_size - 1 };
+                
+                let mut builder = tauri::http::Response::builder()
+                    .header("Content-Type", mime)
+                    .header("Accept-Ranges", "bytes");
+                    
+                if is_partial || actual_chunk_size < file_len {
+                    builder = builder
+                        .status(206)
+                        .header("Content-Range", format!("bytes {}-{}/{}", start, actual_end, file_len))
+                        .header("Content-Length", actual_chunk_size.to_string());
+                } else {
+                    builder = builder
+                        .status(200)
+                        .header("Content-Length", actual_chunk_size.to_string());
+                }
+                
+                return builder.body(data).unwrap();
             }
 
             tauri::http::Response::builder()

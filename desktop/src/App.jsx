@@ -30,7 +30,7 @@ const invoke = (...args) => isTauri()
   : Promise.reject(new Error('Run this action in the CozyPixels desktop app'));
 const listen = (...args) => isTauri()
   ? tauriListen(...args)
-  : Promise.resolve(() => {});
+  : Promise.resolve(() => { });
 
 
 const STATIC_COMMIT = 'f86b8925c715881b33e50f70f34ef8898851a31e';
@@ -52,7 +52,7 @@ function isVideoBackgroundWindow() {
 function getInitialVideoUrl() {
   try {
     const params = new URLSearchParams(window.location.search);
-    return decodeURIComponent(params.get('videoUrl') || '');
+    return params.get('videoUrl') || '';
   } catch {
     return '';
   }
@@ -69,7 +69,7 @@ export default function App() {
 
   const [appVersion, setAppVersion] = useState('');
   useEffect(() => {
-    if (isTauri()) getVersion().then(setAppVersion).catch(() => {});
+    if (isTauri()) getVersion().then(setAppVersion).catch(() => { });
   }, []);
   const updatesEnabled = !import.meta.env.DEV;
   const [wallpapers, setWallpapers] = useState(() => {
@@ -210,14 +210,14 @@ export default function App() {
 
     fetch(API_URL, { signal: controller.signal })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(d => { 
-        if (Array.isArray(d)) { 
-          setWallpapers(d); 
+      .then(d => {
+        if (Array.isArray(d)) {
+          setWallpapers(d);
           localStorage.setItem('cozy_wallpapers_catalog', JSON.stringify(d));
-          setFetchError(false); 
+          setFetchError(false);
           const urls = d.map(w => w.path.startsWith('http') ? w.path : `${STATIC_URL}${w.path}`);
           invoke('sync_all_wallpapers', { urls }).catch(console.error);
-        } 
+        }
       })
       .catch(e => {
         if (e.name !== 'AbortError') {
@@ -250,59 +250,72 @@ export default function App() {
     const getVideoDuration = (url) => {
       return new Promise((resolve) => {
         const video = document.createElement('video');
+        video.preload = 'metadata';
+        let done = false;
+        const finish = (value) => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          video.onloadedmetadata = null;
+          video.onerror = null;
+          video.removeAttribute('src');
+          video.load();
+          resolve(value);
+        };
+        const timer = setTimeout(() => finish(Infinity), 5000);
         video.src = url;
-        video.onloadedmetadata = () => resolve(video.duration);
-        video.onerror = () => resolve(Infinity);
+        video.onloadedmetadata = () => finish(video.duration);
+        video.onerror = () => finish(Infinity);
       });
     };
 
     async function scanLocal() {
-       try {
-         const results = await Promise.allSettled(
-           localFolders.map(folder => invoke('scan_local_directory', { path: folder }))
-         );
-         if (cancelled) return;
-         let arr = [];
-         
-         for (let i = 0; i < results.length; i++) {
-           const res = results[i];
-           if (res.status === 'fulfilled') {
-             const folder = localFolders[i];
-             for (const p of res.value) {
-               const pClean = p.replace(/\\/g, '/');
-               const localUrl = convertFileSrc(pClean, 'cozy');
-               const lowerPath = pClean.toLowerCase();
-               const isVid = lowerPath.endsWith('.mp4') || lowerPath.endsWith('.webm') || lowerPath.endsWith('.mkv');
-               
-               let skip = false;
-               if (isVid) {
-                 const duration = await getVideoDuration(localUrl);
-                 if (duration > 20) skip = true;
-               }
+      try {
+        const results = await Promise.allSettled(
+          localFolders.map(folder => invoke('scan_local_directory', { path: folder }))
+        );
+        if (cancelled) return;
+        let arr = [];
 
-               if (!skip) {
-                 arr.push({
-                   name: pClean.split('/').pop(),
-                   path: localUrl,
-                   realPath: pClean,
-                   category: `Local: ${folder.split('\\').pop()?.split('/').pop()}`,
-                   downloadPath: localUrl
-                 });
-               }
-             }
-           } else {
-             console.error('Local scan error:', res.reason);
-           }
-         }
-         setCustomWallpapers(arr);
-       } catch (e) {
-         console.error('Parallel scan error:', e);
-       }
+        for (let i = 0; i < results.length; i++) {
+          const res = results[i];
+          if (res.status === 'fulfilled') {
+            const folder = localFolders[i];
+            for (const p of res.value) {
+              const pClean = p.replace(/\\/g, '/');
+              const localUrl = convertFileSrc(pClean, 'cozy');
+              const lowerPath = pClean.toLowerCase();
+              const isVid = lowerPath.endsWith('.mp4') || lowerPath.endsWith('.webm') || lowerPath.endsWith('.mkv');
+
+              let skip = false;
+              if (isVid) {
+                const duration = await getVideoDuration(localUrl);
+                if (duration > 20) skip = true;
+              }
+
+              if (!skip) {
+                arr.push({
+                  name: pClean.split('/').pop(),
+                  path: localUrl,
+                  realPath: pClean,
+                  category: `Local: ${folder.split('\\').pop()?.split('/').pop()}`,
+                  downloadPath: localUrl
+                });
+              }
+            }
+          } else {
+            console.error('Local scan error:', res.reason);
+          }
+        }
+        setCustomWallpapers(arr);
+      } catch (e) {
+        console.error('Parallel scan error:', e);
+      }
     }
     scanLocal();
     return () => { cancelled = true; };
   }, [localFolders]);
-  
+
   const [updateModal, setUpdateModal] = useState({ show: false, state: 'checking', version: '', progress: 0, error: '' });
   const pendingUpdateRef = useRef(null);
 
@@ -402,9 +415,16 @@ export default function App() {
     if (autoRotate && rotateStatus) {
       invoke('stop_auto_rotate').then(() => {
         setRotateStatus(false);
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [rotateCategory]);
+
+  const getRotationPool = useCallback((baseWallpapers, category) => {
+    return baseWallpapers
+      .filter(w => category === 'All' || w.category === category)
+      .filter(w => !w.path.toLowerCase().match(/\.(mp4|webm|mkv|gif)$/))
+      .map(w => ({ name: w.name, url: w.realPath || (w.path.startsWith('http') || w.path.startsWith('cozy://') ? w.path : `${STATIC_URL}${w.path}`) }));
+  }, []);
 
   useEffect(() => {
     if (manualRotateRef.current) {
@@ -412,29 +432,26 @@ export default function App() {
       return;
     }
     if (autoRotate && categoryCounts.All > 0 && !rotateStatus) {
-      const pool = allWallpapers
-        .filter(w => rotateCategory === 'All' || w.category === rotateCategory)
-        .filter(w => !w.path.toLowerCase().match(/\.(mp4|webm|mkv|gif)$/))
-        .map(w => ({ name: w.name, url: w.realPath || (w.path.startsWith('http') || w.path.startsWith('cozy://') ? w.path : `${STATIC_URL}${w.path}`) }));
+      const pool = getRotationPool(allWallpapers, rotateCategory);
       if (pool.length) {
         let startIndex = 0;
         let initialDelayMs = rotateInterval;
-        
+
         const lastName = localStorage.getItem('cozy_lastRotationName');
         const lastTime = parseInt(localStorage.getItem('cozy_lastRotationTime'));
-        
+
         if (lastName) {
           const idx = pool.findIndex(w => w.name === lastName);
           if (idx !== -1) startIndex = idx;
         }
-        
+
         if (lastTime) {
           const elapsed = Date.now() - lastTime;
           initialDelayMs = Math.max(0, rotateInterval - elapsed);
         }
 
-        invoke('start_auto_rotate', { 
-          intervalMs: rotateInterval, 
+        invoke('start_auto_rotate', {
+          intervalMs: rotateInterval,
           wallpapers: pool,
           startIndex,
           initialDelayMs
@@ -461,16 +478,16 @@ export default function App() {
       addToast('Wallpaper is unavailable', 'error');
       return false;
     }
-    const url = wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://') 
-       ? wallpaper.path 
-       : `${STATIC_URL}${wallpaper.path}`;
-       
+    const url = wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://')
+      ? wallpaper.path
+      : `${STATIC_URL}${wallpaper.path}`;
+
     const rustUrl = wallpaper.realPath || (url.startsWith('cozy://localhost/') ? url.replace('cozy://localhost/', '') : url);
-       
+
     const isVideo = wallpaper.path.toLowerCase().endsWith('.mp4') || wallpaper.path.toLowerCase().endsWith('.webm') || wallpaper.path.toLowerCase().endsWith('.mkv') || wallpaper.path.toLowerCase().endsWith('.gif');
-       
+
     if (isVideo && autoRotate) {
-      invoke('stop_auto_rotate').catch(() => {});
+      invoke('stop_auto_rotate').catch(() => { });
       setAutoRotate(false);
       setRotateStatus(false);
       addToast('Auto-rotate paused for Live Wallpaper', 'info');
@@ -478,10 +495,8 @@ export default function App() {
 
     setSettingWallpaper(wallpaper.path);
 
-    // Show cinematic transition for video wallpapers
-    if (isVideo) {
-      setVideoTransition({ phase: 'activating', thumbnailUrl: url });
-    }
+    // Show premium cinematic transition for all wallpapers
+    setVideoTransition({ phase: 'activating', thumbnailUrl: url });
 
     try {
       if (isVideo) {
@@ -489,13 +504,15 @@ export default function App() {
           ? rustUrl
           : convertFileSrc(rustUrl, 'cozy');
         await invoke('set_video_wallpaper', { url: rustUrl, playerUrl });
-        // Show success phase
-        setVideoTransition(prev => prev ? { ...prev, phase: 'success' } : null);
-        setTimeout(() => setVideoTransition(null), 1800);
       } else {
         await invoke('set_wallpaper', { url: rustUrl });
       }
-      addToast(isVideo ? 'Live wallpaper set ✨' : 'Wallpaper set', 'wallpaper');
+
+      // Show success phase for both types
+      setVideoTransition(prev => prev ? { ...prev, phase: 'success' } : null);
+      setTimeout(() => setVideoTransition(null), 1800);
+
+      addToast(isVideo ? 'Live wallpaper set ✨' : 'Wallpaper set ✨', 'wallpaper');
       return true;
     } catch (err) {
       setVideoTransition(null);
@@ -511,10 +528,10 @@ export default function App() {
       addToast('Wallpaper is unavailable', 'error');
       return false;
     }
-    const url = wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://') 
-       ? wallpaper.path 
-       : `${STATIC_URL}${wallpaper.path}`;
-       
+    const url = wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://')
+      ? wallpaper.path
+      : `${STATIC_URL}${wallpaper.path}`;
+
     const rustUrl = wallpaper.realPath || (url.startsWith('cozy://localhost/') ? url.replace('cozy://localhost/', '') : url);
 
     setSettingLockScreen(wallpaper.path);
@@ -535,44 +552,44 @@ export default function App() {
       addToast('Wallpaper is unavailable', 'error');
       return;
     }
-    const url = wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://') 
-      ? wallpaper.path 
+    const url = wallpaper.path.startsWith('http') || wallpaper.path.startsWith('cozy://')
+      ? wallpaper.path
       : `${STATIC_URL}${wallpaper.path}`;
-      let filename = wallpaper.name || 'wallpaper';
-  
-      let extension = wallpaper.path.split('.').pop()?.toLowerCase();
-      if (extension && extension.includes('?')) extension = extension.split('?')[0];
-      if (!['jpg', 'jpeg', 'png', 'webp', 'avif'].includes(extension)) {
-        extension = 'jpg';
-      }
-      
-      const filenameExt = filename.split('.').pop()?.toLowerCase();
-      if (!['jpg', 'jpeg', 'png', 'webp', 'avif'].includes(filenameExt)) {
-        filename = `${filename}.${extension}`;
-      }
+    let filename = wallpaper.name || 'wallpaper';
+
+    let extension = wallpaper.path.split('.').pop()?.toLowerCase();
+    if (extension && extension.includes('?')) extension = extension.split('?')[0];
+    if (!['jpg', 'jpeg', 'png', 'webp', 'avif'].includes(extension)) {
+      extension = 'jpg';
+    }
+
+    const filenameExt = filename.split('.').pop()?.toLowerCase();
+    if (!['jpg', 'jpeg', 'png', 'webp', 'avif'].includes(filenameExt)) {
+      filename = `${filename}.${extension}`;
+    }
 
     try {
-        let filePath;
-        
-        if (defaultDownloadPath) {
-          const separator = defaultDownloadPath.includes('\\') ? '\\' : '/';
-          filePath = defaultDownloadPath.endsWith(separator) ? `${defaultDownloadPath}${filename}` : `${defaultDownloadPath}${separator}${filename}`;
-        } else {
-          filePath = await save({
-            defaultPath: filename,
-            filters: [{
-              name: 'Image',
-              extensions: [extension]
-            }]
-          });
-    
-          if (!filePath) return;
-    
-          if (!filePath.toLowerCase().endsWith('.' + extension)) {
-            filePath = filePath + '.' + extension;
-          }
+      let filePath;
+
+      if (defaultDownloadPath) {
+        const separator = defaultDownloadPath.includes('\\') ? '\\' : '/';
+        filePath = defaultDownloadPath.endsWith(separator) ? `${defaultDownloadPath}${filename}` : `${defaultDownloadPath}${separator}${filename}`;
+      } else {
+        filePath = await save({
+          defaultPath: filename,
+          filters: [{
+            name: 'Image',
+            extensions: [extension]
+          }]
+        });
+
+        if (!filePath) return;
+
+        if (!filePath.toLowerCase().endsWith('.' + extension)) {
+          filePath = filePath + '.' + extension;
         }
-  
+      }
+
       addToast('Downloading wallpaper...', 'info');
 
       if (wallpaper.realPath) {
@@ -580,7 +597,7 @@ export default function App() {
       } else {
         await invoke('download_and_save_wallpaper', { url, path: filePath });
       }
-      
+
       addToast(`Saved ${filename}`, 'success');
     } catch (err) {
       console.error(err);
@@ -597,13 +614,11 @@ export default function App() {
     } else {
       manualRotateRef.current = true;
       setAutoRotate(true);
-      const pool = allWallpapers
-        .filter(w => rotateCategory === 'All' || w.category === rotateCategory)
-        .map(w => ({ name: w.name, url: w.realPath || (w.path.startsWith('http') || w.path.startsWith('cozy://') ? w.path : `${STATIC_URL}${w.path}`) }));
+      const pool = getRotationPool(allWallpapers, rotateCategory);
       if (!pool.length) { addToast('No wallpapers in this category', 'error'); return; }
       try {
-        await invoke('start_auto_rotate', { 
-          intervalMs: rotateInterval, 
+        await invoke('start_auto_rotate', {
+          intervalMs: rotateInterval,
           wallpapers: pool,
           startIndex: 0,
           initialDelayMs: rotateInterval
@@ -634,8 +649,8 @@ export default function App() {
   }, [allWallpapers, category, deferredSearch, favorites]);
 
   const toggleSelection = useCallback((wallpaper) => {
-    setSelectedWallpapers(prev => 
-      prev.includes(wallpaper.path) 
+    setSelectedWallpapers(prev =>
+      prev.includes(wallpaper.path)
         ? prev.filter(p => p !== wallpaper.path)
         : [...prev, wallpaper.path]
     );
@@ -672,9 +687,9 @@ export default function App() {
   const handleDeleteLocal = useCallback(async (wallpaper, isCache = false) => {
     try {
       const confirmed = await customConfirm(
-        isCache 
+        isCache
           ? `Are you sure you want to remove "${wallpaper.name}" from local cache?`
-          : `Are you sure you want to permanently delete "${wallpaper.name}" from your computer?`, 
+          : `Are you sure you want to permanently delete "${wallpaper.name}" from your computer?`,
         { title: isCache ? 'Clear Cache' : 'Delete Wallpaper', kind: 'warning' }
       );
       if (confirmed) {
@@ -715,13 +730,11 @@ export default function App() {
   const prevCustomWallpapersLength = useRef(customWallpapers.length);
   useEffect(() => {
     if (autoRotate && customWallpapers.length < prevCustomWallpapersLength.current) {
-      const pool = allWallpapers
-        .filter(w => rotateCategory === 'All' || w.category === rotateCategory)
-        .map(w => ({ name: w.name, url: w.realPath || (w.path.startsWith('http') || w.path.startsWith('cozy://') ? w.path : `${STATIC_URL}${w.path}`) }));
-      
+      const pool = getRotationPool(allWallpapers, rotateCategory);
+
       if (pool.length > 0) {
-        invoke('start_auto_rotate', { 
-          intervalMs: rotateInterval, 
+        invoke('start_auto_rotate', {
+          intervalMs: rotateInterval,
           wallpapers: pool,
           startIndex: 0,
           initialDelayMs: rotateInterval
@@ -743,9 +756,9 @@ export default function App() {
     const uToggle = listen('tray-toggle-rotate', () => {
       setAutoRotate(prev => !prev);
     });
-    return () => { 
-      uNext.then(fn => fn()); 
-      uToggle.then(fn => fn()); 
+    return () => {
+      uNext.then(fn => fn());
+      uToggle.then(fn => fn());
     };
   }, [filtered, autoRotate]);
 
@@ -768,7 +781,7 @@ export default function App() {
 
   return (
     <div className="app">
-      
+
       <aside className="sidebar">
         <div className="logo">
           {!showSplash && (
@@ -782,16 +795,16 @@ export default function App() {
         </div>
 
         <nav className="nav">
-          <button 
-            className={`nav__item ${category === 'All' ? 'active' : ''}`} 
+          <button
+            className={`nav__item ${category === 'All' ? 'active' : ''}`}
             onClick={() => setCategory('All')}
           >
             <LuLayoutGrid size={15} />
             <span>All Wallpapers</span>
             <span className="nav__badge">{categoryCounts.All}</span>
           </button>
-          <button 
-            className={`nav__item ${category === 'Favorites' ? 'active' : ''}`} 
+          <button
+            className={`nav__item ${category === 'Favorites' ? 'active' : ''}`}
             onClick={() => setCategory('Favorites')}
           >
             <LuStar size={15} />
@@ -802,8 +815,8 @@ export default function App() {
             const isCustom = cat.startsWith('Local:');
             return (
               <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                <button 
-                  className={`nav__item ${category === cat ? 'active' : ''}`} 
+                <button
+                  className={`nav__item ${category === cat ? 'active' : ''}`}
                   onClick={() => setCategory(cat)}
                   style={{ flex: 1, overflow: 'hidden' }}
                 >
@@ -812,12 +825,12 @@ export default function App() {
                   <span className="nav__badge">{(categoryCounts[cat] || 0)}</span>
                 </button>
                 {isCustom && (
-                    <button 
-                      className="nav__item"
-                      style={{ flex: '0 0 auto', padding: '8px', background: 'transparent', width: 'auto', minHeight: 'auto' }}
-                      title="Remove"
-                      aria-label={`Remove ${cat}`}
-                      onClick={(e) => {
+                  <button
+                    className="nav__item"
+                    style={{ flex: '0 0 auto', padding: '8px', background: 'transparent', width: 'auto', minHeight: 'auto' }}
+                    title="Remove"
+                    aria-label={`Remove ${cat}`}
+                    onClick={(e) => {
                       e.stopPropagation();
                       if (cat.startsWith('Local:')) {
                         const folderName = cat.replace('Local: ', '');
@@ -843,22 +856,22 @@ export default function App() {
 
 
         <div style={{ padding: '0 12px', marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <button className="nav__item" onClick={async () => {
-              const selected = await open({ directory: true, multiple: false });
-              if (selected) {
-                  if (!localFolders.includes(selected)) setLocalFolders([...localFolders, selected]);
-                  addToast('Folder added', 'success');
-              }
-            }}>
-              <LuFolderPlus size={15} />
-              <span>Add Local Folder</span>
-            </button>
+          <button className="nav__item" onClick={async () => {
+            const selected = await open({ directory: true, multiple: false });
+            if (selected) {
+              if (!localFolders.includes(selected)) setLocalFolders([...localFolders, selected]);
+              addToast('Folder added', 'success');
+            }
+          }}>
+            <LuFolderPlus size={15} />
+            <span>Add Local Folder</span>
+          </button>
         </div>
 
         <div className="sidebar__footer">
           <div style={{ padding: '16px 0', borderTop: '1px solid var(--md-sys-color-outline-variant)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--md-sys-color-outline)', textTransform: 'uppercase', letterSpacing: '0.5px', paddingLeft: '8px' }}>Settings</span>
-            
+
             <div className="panel-row" onClick={() => setDark(!dark)} style={{ cursor: 'pointer' }}>
               <div className="panel-icon-wrap" style={{ width: '32px', height: '32px' }}>
                 {dark ? <LuMoon size={14} /> : <LuSun size={14} />}
@@ -889,7 +902,7 @@ export default function App() {
                 </span>
               </div>
               {defaultDownloadPath && (
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); setDefaultDownloadPath(''); }}
                   style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-outline)', cursor: 'pointer', padding: '4px' }}
                   title="Clear default folder"
@@ -907,9 +920,9 @@ export default function App() {
                 </span>
                 <span className="panel-desc">Change automatically</span>
               </div>
-                <div className={`premium-toggle ${autoRotate ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); handleToggleRotate(); }} style={{ transform: 'scale(0.85)', transformOrigin: 'right' }} role="switch" aria-checked={autoRotate} aria-label="Toggle auto-rotate">
-                  <div className="premium-toggle__thumb" />
-                </div>
+              <div className={`premium-toggle ${autoRotate ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); handleToggleRotate(); }} style={{ transform: 'scale(0.85)', transformOrigin: 'right' }} role="switch" aria-checked={autoRotate} aria-label="Toggle auto-rotate">
+                <div className="premium-toggle__thumb" />
+              </div>
             </div>
             <AnimatePresence>
               {rotateExpanded && (
@@ -1029,9 +1042,9 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      
-      
-      <ConfirmModal 
+
+
+      <ConfirmModal
         show={confirmState.show}
         title={confirmState.title}
         message={confirmState.message}
