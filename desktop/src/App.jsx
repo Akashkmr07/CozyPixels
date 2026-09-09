@@ -12,7 +12,7 @@ import {
   LuRefreshCw, LuX, LuTrash,
   LuMonitor, LuSparkles, LuSun, LuMoon,
   LuChevronDown, LuChevronUp, LuChevronLeft, LuChevronRight,
-  LuFolderPlus, LuTriangleAlert, LuStar, LuMousePointerClick
+  LuFolderPlus, LuTriangleAlert, LuStar, LuMousePointerClick, LuPlay, LuCheck
 } from 'react-icons/lu';
 import './App.css?v=2';
 import { SplashScreen } from './components/SplashScreen.jsx';
@@ -35,14 +35,36 @@ const listen = (...args) => isTauri()
 
 const STATIC_COMMIT = 'f86b8925c715881b33e50f70f34ef8898851a31e';
 const API_URL = `https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@${STATIC_COMMIT}/frontend/public/wallpapers.json`;
+import { getCurrentWindow } from '@tauri-apps/api/window';
+
 const STATIC_URL = `https://cdn.jsdelivr.net/gh/yadavnikhil03/CozyPixels@${STATIC_COMMIT}/frontend/public`;
 
-export default function App() {
-  const params = new URLSearchParams(window.location.search);
-  const videoUrl = params.get('videoUrl');
+// Detect if this window is the video background player BEFORE any React renders
+function isVideoBackgroundWindow() {
+  try {
+    const win = getCurrentWindow();
+    return win.label === 'video_bg';
+  } catch {
+    return false;
+  }
+}
 
-  if (videoUrl) {
-    return <VideoBackgroundPlayer initialUrl={videoUrl} />;
+function getInitialVideoUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return decodeURIComponent(params.get('videoUrl') || '');
+  } catch {
+    return '';
+  }
+}
+
+// If this is the video_bg window, render ONLY the video player — skip the entire main app
+const IS_VIDEO_BG = isVideoBackgroundWindow();
+
+export default function App() {
+  // Video background windows get their own minimal component tree
+  if (IS_VIDEO_BG) {
+    return <VideoBackgroundPlayer initialUrl={getInitialVideoUrl()} />;
   }
 
   const [appVersion, setAppVersion] = useState('');
@@ -108,6 +130,7 @@ export default function App() {
   const toastTimer = useRef(null);
   const toastIdCounter = useRef(0);
   const manualRotateRef = useRef(false);
+  const [videoTransition, setVideoTransition] = useState(null); // { phase, thumbnailUrl }
 
   const toastRef = useRef(null);
 
@@ -223,6 +246,16 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('cozy_localFolders', JSON.stringify(localFolders));
     let cancelled = false;
+
+    const getVideoDuration = (url) => {
+      return new Promise((resolve) => {
+        const video = document.createElement('video');
+        video.src = url;
+        video.onloadedmetadata = () => resolve(video.duration);
+        video.onerror = () => resolve(Infinity);
+      });
+    };
+
     async function scanLocal() {
        try {
          const results = await Promise.allSettled(
@@ -230,24 +263,37 @@ export default function App() {
          );
          if (cancelled) return;
          let arr = [];
-         results.forEach((res, i) => {
+         
+         for (let i = 0; i < results.length; i++) {
+           const res = results[i];
            if (res.status === 'fulfilled') {
              const folder = localFolders[i];
-             arr.push(...res.value.map(p => {
+             for (const p of res.value) {
                const pClean = p.replace(/\\/g, '/');
                const localUrl = convertFileSrc(pClean, 'cozy');
-               return {
-                 name: pClean.split('/').pop(),
-                 path: localUrl,
-                 realPath: pClean,
-                 category: `Local: ${folder.split('\\').pop()?.split('/').pop()}`,
-                 downloadPath: localUrl
-               };
-             }));
+               const lowerPath = pClean.toLowerCase();
+               const isVid = lowerPath.endsWith('.mp4') || lowerPath.endsWith('.webm') || lowerPath.endsWith('.mkv');
+               
+               let skip = false;
+               if (isVid) {
+                 const duration = await getVideoDuration(localUrl);
+                 if (duration > 20) skip = true;
+               }
+
+               if (!skip) {
+                 arr.push({
+                   name: pClean.split('/').pop(),
+                   path: localUrl,
+                   realPath: pClean,
+                   category: `Local: ${folder.split('\\').pop()?.split('/').pop()}`,
+                   downloadPath: localUrl
+                 });
+               }
+             }
            } else {
              console.error('Local scan error:', res.reason);
            }
-         });
+         }
          setCustomWallpapers(arr);
        } catch (e) {
          console.error('Parallel scan error:', e);
@@ -411,21 +457,31 @@ export default function App() {
        
     const rustUrl = wallpaper.realPath || (url.startsWith('cozy://localhost/') ? url.replace('cozy://localhost/', '') : url);
        
-    const isVideo = wallpaper.path.toLowerCase().endsWith('.mp4') || wallpaper.path.toLowerCase().endsWith('.webm') || wallpaper.path.toLowerCase().endsWith('.mkv');
+    const isVideo = wallpaper.path.toLowerCase().endsWith('.mp4') || wallpaper.path.toLowerCase().endsWith('.webm') || wallpaper.path.toLowerCase().endsWith('.mkv') || wallpaper.path.toLowerCase().endsWith('.gif');
        
     setSettingWallpaper(wallpaper.path);
+
+    // Show cinematic transition for video wallpapers
+    if (isVideo) {
+      setVideoTransition({ phase: 'activating', thumbnailUrl: url });
+    }
+
     try {
       if (isVideo) {
         const playerUrl = rustUrl.startsWith('http://') || rustUrl.startsWith('https://')
           ? rustUrl
           : convertFileSrc(rustUrl, 'cozy');
         await invoke('set_video_wallpaper', { url: rustUrl, playerUrl });
+        // Show success phase
+        setVideoTransition(prev => prev ? { ...prev, phase: 'success' } : null);
+        setTimeout(() => setVideoTransition(null), 1800);
       } else {
         await invoke('set_wallpaper', { url: rustUrl });
       }
-      addToast('Wallpaper set', 'wallpaper');
+      addToast(isVideo ? 'Live wallpaper set ✨' : 'Wallpaper set', 'wallpaper');
       return true;
     } catch (err) {
+      setVideoTransition(null);
       addToast(`${err}`, 'error');
       return false;
     } finally {
@@ -503,7 +559,7 @@ export default function App() {
       addToast('Downloading wallpaper...', 'info');
 
       if (wallpaper.realPath) {
-        let bytes = await invoke('read_file_bytes', { path: wallpaper.realPath });
+        // It's a local wallpaper, no need to download it again
       } else {
         await invoke('download_and_save_wallpaper', { url, path: filePath });
       }
@@ -989,6 +1045,157 @@ export default function App() {
         onClose={closeUpdateModal}
         onInstall={handleInstallUpdate}
       />
+
+      {/* Premium cinematic overlay for video wallpaper transitions */}
+      <AnimatePresence>
+        {videoTransition && (
+          <motion.div
+            className="video-transition-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 10000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'none',
+              background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.85) 100%)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+            }}
+          >
+            {/* Animated ring pulse */}
+            <motion.div
+              style={{
+                position: 'absolute',
+                width: '200px',
+                height: '200px',
+                borderRadius: '50%',
+                border: '2px solid rgba(186, 195, 255, 0.3)',
+              }}
+              animate={{
+                scale: [1, 2.5, 3],
+                opacity: [0.6, 0.2, 0],
+              }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
+            />
+            <motion.div
+              style={{
+                position: 'absolute',
+                width: '200px',
+                height: '200px',
+                borderRadius: '50%',
+                border: '1.5px solid rgba(186, 195, 255, 0.2)',
+              }}
+              animate={{
+                scale: [1, 2, 2.5],
+                opacity: [0.4, 0.15, 0],
+              }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeOut', delay: 0.4 }}
+            />
+
+            {/* Floating particles */}
+            {[...Array(6)].map((_, i) => (
+              <motion.div
+                key={i}
+                style={{
+                  position: 'absolute',
+                  width: '4px',
+                  height: '4px',
+                  borderRadius: '50%',
+                  background: 'rgba(186, 195, 255, 0.6)',
+                  boxShadow: '0 0 8px rgba(186, 195, 255, 0.4)',
+                }}
+                initial={{ opacity: 0 }}
+                animate={{
+                  y: [0, -80 - i * 15],
+                  x: [0, (i % 2 === 0 ? 1 : -1) * (20 + i * 12)],
+                  opacity: [0, 0.8, 0],
+                  scale: [0.5, 1.2, 0.3],
+                }}
+                transition={{
+                  duration: 1.8,
+                  repeat: Infinity,
+                  delay: i * 0.25,
+                  ease: 'easeOut',
+                }}
+              />
+            ))}
+
+            {/* Center icon */}
+            <motion.div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '16px',
+                zIndex: 2,
+              }}
+            >
+              <motion.div
+                style={{
+                  width: '72px',
+                  height: '72px',
+                  borderRadius: '50%',
+                  background: videoTransition.phase === 'success'
+                    ? 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)'
+                    : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: videoTransition.phase === 'success'
+                    ? '0 0 40px rgba(74, 222, 128, 0.4), 0 0 80px rgba(74, 222, 128, 0.15)'
+                    : '0 0 40px rgba(99, 102, 241, 0.4), 0 0 80px rgba(139, 92, 246, 0.15)',
+                }}
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{
+                  scale: 1,
+                  rotate: 0,
+                }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }}
+              >
+                {videoTransition.phase === 'success' ? (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                  >
+                    <LuCheck size={32} color="#fff" strokeWidth={3} />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                  >
+                    <LuPlay size={28} color="#fff" style={{ marginLeft: '3px' }} />
+                  </motion.div>
+                )}
+              </motion.div>
+
+              <motion.span
+                style={{
+                  color: '#fff',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  letterSpacing: '0.5px',
+                  textTransform: 'uppercase',
+                  textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                  fontFamily: 'Inter, sans-serif',
+                }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                {videoTransition.phase === 'success' ? 'Live Wallpaper Set!' : 'Setting Live Wallpaper...'}
+              </motion.span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
